@@ -264,13 +264,43 @@ enum SelfTest {
         }
 
         // The one that matters most: every numeric setting must appear exactly
-        // once. A mistyped keypath compiles fine and drops the control.
+        // once, bound to the setting it names. A mistyped keypath compiles fine
+        // and silently drives its neighbour's setting.
         let labels = SliderSection.all.flatMap { $0.sliders.map(\.label) }
         expect("6 sliders declared", labels.count == 6)
         for want in ["Circle", "Darkness", "Lens", "Magnify", "Dot", "Line"] {
             expect("has \(want)", labels.filter { $0 == want }.count == 1)
         }
         expect("no duplicate labels", Set(labels).count == labels.count)
+        let keypaths: [String: ReferenceWritableKeyPath<Settings, CGFloat>] = [
+            "Circle": \.spotlightRadius,
+            "Darkness": \.spotlightDim,
+            "Lens": \.lensSide,
+            "Magnify": \.lensMagnification,
+            "Dot": \.laserRadius,
+            "Line": \.ringWidth,
+        ]
+        for section in SliderSection.all {
+            for spec in section.sliders {
+                guard let want = keypaths[spec.label] else {
+                    expect("\(section.title)/\(spec.label) has an expected keypath", false)
+                    continue
+                }
+                expect("\(section.title)/\(spec.label) drives its own setting", spec.keyPath == want)
+            }
+        }
+
+        // A readout that rounds below its own step renders every reachable value
+        // in the gap as the same string, so the slider looks stuck while it moves.
+        for section in SliderSection.all {
+            for spec in section.sliders {
+                let low = spec.range.lowerBound
+                expect(
+                    "\(section.title)/\(spec.label) readout separates one step",
+                    spec.format(low) != spec.format(low + spec.step)
+                )
+            }
+        }
 
         // Colour sections carry a keypath or the swatches cannot write anywhere.
         for section in SliderSection.all where !section.colorPresets.isEmpty {
@@ -279,24 +309,43 @@ enum SelfTest {
 
         // Clamping is the whole guard against a value written outside the range
         // by an older build.
-        let circle = SliderSection.all[0].sliders[0]
-        expect("clamp below -> low", circle.clamped(-999) == circle.range.lowerBound)
-        expect("clamp above -> high", circle.clamped(9999) == circle.range.upperBound)
-        expect("clamp inside -> unchanged", circle.clamped(200) == 200)
-
-        // Every effect has to be previewable, including the shared ring.
-        var previewed: Set<Effect> = []
-        for current in Effect.allCases {
-            for section in SliderSection.all {
-                previewed.insert(section.previewEffect(current: current))
-            }
+        func section(_ title: String) -> SliderSection? {
+            SliderSection.all.first { $0.title == title }
         }
-        expect("all effects previewable", previewed == Set([.spotlight, .laser, .zoom]))
-        // Dragging Line while the lens is up must not replace the lens.
-        expect("Edge keeps the lens", SliderSection.all[3].previewEffect(current: .zoom) == .zoom)
-        expect("Edge keeps the spotlight", SliderSection.all[3].previewEffect(current: .spotlight) == .spotlight)
-        // Laser has no ring, so Edge borrows the spotlight.
-        expect("Edge falls back past the laser", SliderSection.all[3].previewEffect(current: .laser) == .spotlight)
+        if let circle = SliderSection.all.first(where: { $0.title == "Spotlight" })?
+            .sliders.first(where: { $0.label == "Circle" }) {
+            expect("clamp below -> low", circle.clamped(-999) == circle.range.lowerBound)
+            expect("clamp above -> high", circle.clamped(9999) == circle.range.upperBound)
+            expect("clamp inside -> unchanged", circle.clamped(200) == 200)
+        } else {
+            expect("Spotlight/Circle slider exists", false)
+        }
+
+        // Each effect has to be reachable from its own section. A union of every
+        // section's preview cannot tell two sections apart: retarget the lens at
+        // the spotlight and the set is unchanged.
+        let previews: [(String, Effect)] = [
+            ("Spotlight", .spotlight), ("Zoom Lens", .zoom), ("Laser Pointer", .laser),
+        ]
+        for (title, want) in previews {
+            guard let found = section(title) else {
+                expect("\(title) section exists", false)
+                continue
+            }
+            expect(
+                "\(title) previews onto \(want.rawValue)",
+                Effect.allCases.allSatisfy { found.previewEffect(current: $0) == want }
+            )
+        }
+        if let edge = section("Edge") {
+            // Dragging Line while the lens is up must not replace the lens.
+            expect("Edge keeps the lens", edge.previewEffect(current: .zoom) == .zoom)
+            expect("Edge keeps the spotlight", edge.previewEffect(current: .spotlight) == .spotlight)
+            // Laser has no ring, so Edge borrows the spotlight.
+            expect("Edge falls back past the laser", edge.previewEffect(current: .laser) == .spotlight)
+        } else {
+            expect("Edge section exists", false)
+        }
 
         expect("percent formats", SliderSection.percent(0.82) == "82%")
         expect("magnify formats", SliderSection.magnify(2) == "2.0x")

@@ -35,9 +35,9 @@ struct SliderSection {
     let colorPresets: [(name: String, color: NSColor)]
     /// Which effect this section previews onto, given what is running now.
     ///
-    /// The shared ring belongs to the spotlight and the lens alike, so it has no
-    /// effect of its own: it previews onto whichever of those is already up, and
-    /// falls back to the spotlight when neither is.
+    /// Usually that is the section's own effect. The shared ring is the exception:
+    /// it belongs to the spotlight and the lens alike, so the Edge section has no
+    /// effect of its own and previews onto whichever of those is already up.
     let preview: (Effect) -> Effect
 
     func previewEffect(current: Effect) -> Effect {
@@ -84,7 +84,7 @@ struct SliderSection {
             title: "Laser Pointer",
             sliders: [SliderSpec(
                 label: "Dot", keyPath: \.laserRadius,
-                range: 3...26, step: 0.1, format: Settings.points
+                range: 3...26, step: 0.1, format: Self.points
             )],
             colorKeyPath: \.laserColor,
             colorPresets: Settings.laserPresets,
