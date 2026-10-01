@@ -30,6 +30,8 @@ final class Presentools: NSObject, NSApplicationDelegate {
     /// Held so the recorder window is not torn down the moment `openShortcutRecorder`
     /// returns. `isReleasedWhenClosed` keeps the window itself alive after closing.
     private var recorder: ShortcutRecorderWindow?
+    /// Same reason, for the settings panel.
+    private var settingsWindow: SettingsWindow?
     private var lens: ZoomLens?
     private var statusItem: NSStatusItem?
 
@@ -195,181 +197,27 @@ final class Presentools: NSObject, NSApplicationDelegate {
         statusItem?.menu = menu
     }
 
-    /// One tunable change, carried on the menu item itself. `NSMenuItem` has no
-    /// closure slot, and a stored pending-closure would outlive the menu it
-    /// belonged to; a value enum survives the rebuild that follows each change.
-    @MainActor
-    private enum Adjust {
-        case spotlightRadius(CGFloat)
-        case spotlightDim(CGFloat)
-        case laserRadius(CGFloat)
-        case lensSide(CGFloat)
-        case lensMagnification(CGFloat)
-        case ringWidth(CGFloat)
-        case laserColor(NSColor)
-        case ringColor(NSColor)
-
-        /// Signed step is the whole payload: the sign picks the direction and
-        /// the title, so a stepper is one enum case with a delta.
-        var title: String {
-            switch self {
-            case .spotlightRadius(let d), .lensSide(let d): d > 0 ? "Larger" : "Smaller"
-            case .spotlightDim(let d): d > 0 ? "Darker" : "Lighter"
-            case .laserRadius(let d): d > 0 ? "Bigger" : "Smaller"
-            case .lensMagnification(let d): d > 0 ? "More zoom" : "Less zoom"
-            case .ringWidth(let d): d > 0 ? "Thicker" : "Thinner"
-            case .laserColor, .ringColor: "Colour"
-            }
-        }
-
-        /// Whether the step would land inside its range, so the menu greys out
-        /// at the ends instead of silently doing nothing.
-        var inRange: Bool {
-            let s = Settings.shared
-            switch self {
-            case .spotlightRadius(let d): return within(s.spotlightRadius, d, 80, 400)
-            case .spotlightDim(let d): return within(s.spotlightDim, d, 0.2, 0.98)
-            case .laserRadius(let d): return within(s.laserRadius, d, 3, 26)
-            case .lensSide(let d): return within(s.lensSide, d, 180, 900)
-            case .lensMagnification(let d): return within(s.lensMagnification, d, 1.5, 6)
-            case .ringWidth(let d): return within(s.ringWidth, d, 0, 12)
-            case .laserColor, .ringColor: return true
-            }
-        }
-
-        private func within(_ current: CGFloat, _ delta: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> Bool {
-            let next = current + delta
-            return next >= lo && next <= hi
-        }
-
-        func apply() {
-            let s = Settings.shared
-            switch self {
-            case .spotlightRadius(let d): s.set(\.spotlightRadius, within(s.spotlightRadius + d, 80, 400))
-            // Alpha stays below 1 or the overlay stops being an overlay.
-            case .spotlightDim(let d): s.set(\.spotlightDim, within(s.spotlightDim + d, 0.2, 0.98))
-            case .laserRadius(let d): s.set(\.laserRadius, within(s.laserRadius + d, 3, 26))
-            case .lensSide(let d): s.set(\.lensSide, within(s.lensSide + d, 180, 900))
-            case .lensMagnification(let d): s.set(\.lensMagnification, within(s.lensMagnification + d, 1.5, 6))
-            case .ringWidth(let d): s.set(\.ringWidth, within(s.ringWidth + d, 0, 12))
-            case .laserColor(let c): s.set(\.laserColor, c)
-            case .ringColor(let c): s.set(\.ringColor, c)
-            }
-        }
-
-        private func within(_ v: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-            min(max(v, lo), hi)
-        }
-    }
-
-    /// Settings live in the menu, not a control panel window: the app is
-    /// `LSUIElement`, so every value is reachable without a window ever
-    /// appearing over the slide.
+    /// One item, not four submenus. The values live in a panel with real sliders:
+    /// an `NSMenu` cannot host an interactive slider, and reaching one number
+    /// three levels deep is the problem the panel replaces. `Reset to Defaults`
+    /// moved there too, so the menu bar stays a list of actions.
     private func addSettings(to menu: NSMenu) {
-        let s = Settings.shared
-
-        menu.addItem(submenu("Spotlight") { sub in
-            self.addStepper(
-                sub, .spotlightRadius(20), .spotlightRadius(-20),
-                "Circle: \(Settings.points(s.spotlightRadius))"
-            )
-            self.addStepper(
-                sub, .spotlightDim(0.06), .spotlightDim(-0.06),
-                "Darkness: \(Int(s.spotlightDim * 100))%"
-            )
-        })
-
-        menu.addItem(submenu("Zoom Lens") { sub in
-            self.addStepper(
-                sub, .lensSide(80), .lensSide(-80),
-                "Lens: \(Settings.points(s.lensSide))"
-            )
-            self.addStepper(
-                sub, .lensMagnification(0.5), .lensMagnification(-0.5),
-                "Magnify: \(String(format: "%.1f", s.lensMagnification))x"
-            )
-        })
-
-        menu.addItem(submenu("Laser Pointer") { sub in
-            self.addStepper(
-                sub, .laserRadius(1), .laserRadius(-1),
-                "Dot: \(Settings.points(s.laserRadius * 2))"
-            )
-            sub.addItem(.separator())
-            self.addColors(sub, Settings.laserPresets, s.laserColor) { .laserColor($0) }
-        })
-
-        // One ring setting for both the spotlight and the lens: they sit over the
-        // same uncontrolled slide, so a colour that reads on one reads on both.
-        menu.addItem(submenu("Edge") { sub in
-            self.addStepper(sub, .ringWidth(1), .ringWidth(-1), "Line: \(Int(s.ringWidth)) pt")
-            sub.addItem(.separator())
-            self.addColors(sub, Settings.ringPresets, s.ringColor) { .ringColor($0) }
-        })
-
-        let reset = NSMenuItem(
-            title: "Reset to Defaults", action: #selector(resetSettings(_:)), keyEquivalent: ""
+        let item = NSMenuItem(
+            title: "Settings…", action: #selector(openSettings(_:)), keyEquivalent: ""
         )
-        reset.target = self
-        menu.addItem(reset)
-    }
-
-    private func submenu(_ title: String, _ build: (NSMenu) -> Void) -> NSMenuItem {
-        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        let sub = NSMenu(title: title)
-        build(sub)
-        parent.submenu = sub
-        return parent
-    }
-
-    /// A Larger/Smaller pair with the current value shown between them, so the
-    /// menu always displays the value without opening anything.
-    private func addStepper(_ menu: NSMenu, _ up: Adjust, _ down: Adjust, _ value: String) {
-        menu.addItem(adjustItem(up))
-        menu.addItem(adjustItem(down))
-        let line = NSMenuItem(title: value, action: nil, keyEquivalent: "")
-        line.isEnabled = false
-        menu.addItem(line)
-    }
-
-    private func adjustItem(_ adjust: Adjust) -> NSMenuItem {
-        let item = NSMenuItem(title: adjust.title, action: #selector(adjust(_:)), keyEquivalent: "")
         item.target = self
-        item.representedObject = adjust
-        item.isEnabled = adjust.inRange
-        return item
+        menu.addItem(item)
     }
 
-    private func addColors(
-        _ menu: NSMenu, _ presets: [(name: String, color: NSColor)],
-        _ current: NSColor, _ make: (NSColor) -> Adjust
-    ) {
-        for preset in presets {
-            let item = NSMenuItem(
-                title: preset.name, action: #selector(adjust(_:)), keyEquivalent: ""
+    @objc private func openSettings(_ sender: Any?) {
+        if settingsWindow == nil {
+            settingsWindow = SettingsWindow(
+                currentEffect: { [weak self] in self?.effect ?? .none },
+                setEffect: { [weak self] next in self?.set(next) },
+                resetAll: { [weak self] in self?.resetSettings(nil) }
             )
-            item.target = self
-            item.representedObject = make(preset.color)
-            item.state = preset.color.hexString == current.hexString ? .on : .off
-            item.image = swatch(preset.color)
-            menu.addItem(item)
         }
-    }
-
-    private func swatch(_ color: NSColor) -> NSImage {
-        let size = NSSize(width: 12, height: 12)
-        let image = NSImage(size: size)
-        image.lockFocus()
-        color.setFill()
-        NSBezierPath(ovalIn: NSRect(origin: .zero, size: size)).fill()
-        image.unlockFocus()
-        return image
-    }
-
-    @objc private func adjust(_ sender: NSMenuItem) {
-        guard let change = sender.representedObject as? Adjust else { return }
-        change.apply()
-        rebuildMenu()
+        settingsWindow?.show()
     }
 
     @objc private func resetSettings(_ sender: Any?) {
