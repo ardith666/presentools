@@ -4,6 +4,8 @@ Minimal presentation utilities for macOS: Spotlight, Laser Pointer, and Zoom Len
 
 [![Presentools in action — click to play the 88-second demo](website/asset/site-demo.jpg)](website/asset/site-demo.mp4)
 
+- **Website:** [https://digitechnesia.my.id/presentools/](https://digitechnesia.my.id/presentools/)
+
 ## Requirements
 
 - macOS 27.0+
