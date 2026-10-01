@@ -43,8 +43,9 @@ enum SelfTest {
         let updates = checkUpdateLogic()
         let login = checkLaunchAtLoginMapping()
         let newSettings = checkNewSettingsDefaults()
+        let sliders = checkSliderSpecs()
 
-        let ok = spotlight && edge && laser && offSurface && colors && defaults && gestures && hotkeys && callback && persist && conflicts && glyphs && clicks && version && updates && login && newSettings
+        let ok = spotlight && edge && laser && offSurface && colors && defaults && gestures && hotkeys && callback && persist && conflicts && glyphs && clicks && version && updates && login && newSettings && sliders
         print(ok ? "selftest: PASS" : "selftest: FAIL")
         return ok
     }
@@ -221,6 +222,85 @@ enum SelfTest {
         // disable updates; the default must win over absence.
         d.removeObject(forKey: "autoUpdate")
         expect("absent autoUpdate stays on", Settings(defaults: d).autoUpdate)
+        return ok
+    }
+
+    /// The slider table is what a settings window is built from, so a bad entry
+    /// is either a slider that cannot reach a legal value or a setting that
+    /// quietly stopped being adjustable at all. Both are invisible until someone
+    /// opens the window, so they are checked here instead.
+    ///
+    /// AppKit-free on purpose: these run in `--selftest` with no window server.
+    private static func checkSliderSpecs() -> Bool {
+        var ok = true
+        func expect(_ label: String, _ got: Bool) {
+            print("  slider \(label): \(got ? "ok" : "BAD")")
+            if !got { ok = false }
+        }
+
+        // A range that excludes the shipped default snaps the slider to an end
+        // the first time the window opens, which reads as the app ignoring the
+        // setting rather than as a clamp.
+        let shipped: [String: CGFloat] = [
+            "Circle": Settings.Default.spotlightRadius,
+            "Darkness": Settings.Default.spotlightDim,
+            "Lens": Settings.Default.lensSide,
+            "Magnify": Settings.Default.lensMagnification,
+            "Dot": Settings.Default.laserRadius,
+            "Line": Settings.Default.ringWidth,
+        ]
+        for section in SliderSection.all {
+            for spec in section.sliders {
+                guard let def = shipped[spec.label] else {
+                    expect("\(section.title)/\(spec.label) has a shipped default", false)
+                    continue
+                }
+                expect(
+                    "\(section.title)/\(spec.label) range holds its default",
+                    spec.range.contains(def)
+                )
+                expect("\(section.title)/\(spec.label) has positive step", spec.step > 0)
+            }
+        }
+
+        // The one that matters most: every numeric setting must appear exactly
+        // once. A mistyped keypath compiles fine and drops the control.
+        let labels = SliderSection.all.flatMap { $0.sliders.map(\.label) }
+        expect("6 sliders declared", labels.count == 6)
+        for want in ["Circle", "Darkness", "Lens", "Magnify", "Dot", "Line"] {
+            expect("has \(want)", labels.filter { $0 == want }.count == 1)
+        }
+        expect("no duplicate labels", Set(labels).count == labels.count)
+
+        // Colour sections carry a keypath or the swatches cannot write anywhere.
+        for section in SliderSection.all where !section.colorPresets.isEmpty {
+            expect("\(section.title) has a colour keypath", section.colorKeyPath != nil)
+        }
+
+        // Clamping is the whole guard against a value written outside the range
+        // by an older build.
+        let circle = SliderSection.all[0].sliders[0]
+        expect("clamp below -> low", circle.clamped(-999) == circle.range.lowerBound)
+        expect("clamp above -> high", circle.clamped(9999) == circle.range.upperBound)
+        expect("clamp inside -> unchanged", circle.clamped(200) == 200)
+
+        // Every effect has to be previewable, including the shared ring.
+        var previewed: Set<Effect> = []
+        for current in Effect.allCases {
+            for section in SliderSection.all {
+                previewed.insert(section.previewEffect(current: current))
+            }
+        }
+        expect("all effects previewable", previewed == Set([.spotlight, .laser, .zoom]))
+        // Dragging Line while the lens is up must not replace the lens.
+        expect("Edge keeps the lens", SliderSection.all[3].previewEffect(current: .zoom) == .zoom)
+        expect("Edge keeps the spotlight", SliderSection.all[3].previewEffect(current: .spotlight) == .spotlight)
+        // Laser has no ring, so Edge borrows the spotlight.
+        expect("Edge falls back past the laser", SliderSection.all[3].previewEffect(current: .laser) == .spotlight)
+
+        expect("percent formats", SliderSection.percent(0.82) == "82%")
+        expect("magnify formats", SliderSection.magnify(2) == "2.0x")
+        expect("sub-point formats", SliderSection.points(0.5) == "0.5 pt")
         return ok
     }
 
