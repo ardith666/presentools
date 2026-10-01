@@ -1,6 +1,6 @@
 cask "presentools" do
-  version "0.3.0"
-  sha256 "878b948e30fa34d18797b19c9aee10553321f40c6888465cd0ca325bfaf81b5d"
+  version "0.4.0"
+  sha256 "42899e2a9c289ee54b68c0b2c27b1edc5a10e4de13fd5c4bcc3143761befacf2"
 
   url "https://github.com/ardith666/presentools/releases/download/v#{version}/Presentools-#{version}.dmg"
   name "Presentools"
