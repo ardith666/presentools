@@ -13,11 +13,24 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     private static let rowHeight: CGFloat = 28
     private static let labelWidth: CGFloat = 74
     private static let readoutWidth: CGFloat = 62
-    /// 488 wide is the sum of the parts: sidebar 148 + `columns` spacing 8 + the
-    /// 332 the widest pane needs (a 74 pt label, an 8 pt gap, a 180 pt slider
-    /// floor, an 8 pt gap, a 62 pt readout). Anything narrower clips the pane.
-    private static let contentSize = NSSize(width: 488, height: 268)
+    /// Breathing room between the content and the panel edge. Controls flush
+    /// against the window border read as clipped even when nothing is clipped,
+    /// and a `.sourceList` table draws its own selection background right up to
+    /// the edge, which makes the missing inset most obvious on the sidebar.
+    private static let inset: CGFloat = 14
+    /// 516 wide is the sum of the parts: 14 inset + sidebar 148 + `columns`
+    /// spacing 8 + the 332 the widest pane needs (a 74 pt label, an 8 pt gap, a
+    /// 180 pt slider floor, an 8 pt gap, a 62 pt readout) + 14 inset. Anything
+    /// narrower clips the pane.
+    private static let contentSize = NSSize(
+        width: inset * 2 + sidebarWidth + 8 + 332,
+        height: 268 + inset * 2
+    )
     private static let frameKey = "settingsWindowFrame"
+    /// Long enough to keep the effect up while the pointer is still travelling
+    /// between sliders, short enough that a preview is not something the
+    /// presenter has to remember to switch off.
+    private static let previewIdle: TimeInterval = 1.2
 
     private let currentEffect: () -> Effect
     private let setEffect: (Effect) -> Void
@@ -27,6 +40,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     /// `nil` means this window has not changed the effect, so closing it changes
     /// nothing.
     private var previewRestore: Effect?
+    /// Armed by every slider move, fired once the pointer goes quiet. Held rather
+    /// than scheduled-and-forgotten so a later move can cancel the pending
+    /// tear-down instead of stacking timers that each restore the effect.
+    private var previewIdleTimer: Timer?
     /// Live controls for the visible section, so a value change can refresh a
     /// readout without rebuilding the pane under the slider being dragged.
     private var controls: [Control] = []
@@ -75,7 +92,23 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     }
 
     private func build() {
-        let saved = UserDefaults.standard.string(forKey: Self.frameKey).flatMap(NSRectFromString)
+        let savedOrigin = UserDefaults.standard
+            .string(forKey: Self.frameKey)
+            .flatMap(NSPointFromString)
+            // Only the origin is trusted, and only when it puts the panel on a
+            // screen that is actually attached. The size is `contentSize` above,
+            // never the stored value: honouring a size left by an older build
+            // would keep the panel the wrong shape for good, one launch after
+            // another. A panel remembered on a display that has since been
+            // unplugged would otherwise open off-screen with no way to reach it,
+            // which is worse than not remembering the position at all.
+            .flatMap { origin -> NSPoint? in
+                let rect = NSRect(origin: origin, size: Self.contentSize)
+                let onScreen = NSScreen.screens.contains {
+                    $0.visibleFrame.intersects(rect)
+                }
+                return onScreen ? origin : nil
+            }
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable, .miniaturizable, .nonactivatingPanel],
@@ -91,13 +124,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.delegate = self
-        // `setFrame(_:display:)` rather than passing the saved rect to
-        // `contentRect:` above: the stored value is a *frame* (it includes the
-        // title bar), and handing a frame to `contentRect:` treats it as a
-        // content rect, so the window came back a title-bar height too low and
-        // walked further down with every save/open cycle.
-        if let saved {
-            panel.setFrame(saved, display: false)
+        if let savedOrigin {
+            panel.setFrameOrigin(savedOrigin)
         } else {
             panel.center()
         }
@@ -164,15 +192,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         self.titleLabel = titleLabel
 
         NSLayoutConstraint.activate([
-            columns.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            columns.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            columns.topAnchor.constraint(equalTo: content.topAnchor),
-            columns.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -10),
+            columns.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Self.inset),
+            columns.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Self.inset),
+            columns.topAnchor.constraint(equalTo: content.topAnchor, constant: Self.inset),
+            columns.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -12),
             sidebar.widthAnchor.constraint(equalToConstant: Self.sidebarWidth),
 
-            footer.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 14),
-            footer.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -14),
-            footer.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -10),
+            // The footer aligns to the columns, not to the window edges, so the
+            // reset button sits under the pane instead of jumping in by the inset.
+            footer.leadingAnchor.constraint(equalTo: columns.leadingAnchor),
+            footer.trailingAnchor.constraint(equalTo: columns.trailingAnchor),
+            footer.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Self.inset),
             // The pane above and this footer below share the content height and
             // nothing says which one gets the slack, so Auto Layout hands all of
             // it to the footer and the sidebar collapses to zero height. One row.
@@ -229,7 +259,12 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         slider.doubleValue = Self.snap(slider.doubleValue, to: spec.step)
         slider.translatesAutoresizingMaskIntoConstraints = false
 
-        let readout = NSTextField(labelWithString: spec.format(spec.value()))
+        // Formatted from the snapped value, matching the thumb two lines up: a
+        // stored setting is always on the step grid, so a readout built from the
+        // raw value could show `9.4 pt` over a thumb sitting on `9.3`.
+        let readout = NSTextField(
+            labelWithString: spec.format(spec.clamped(CGFloat(slider.doubleValue)))
+        )
         readout.alignment = .right
         readout.font = NSFont.monospacedDigitSystemFont(
             ofSize: NSFont.systemFontSize, weight: .regular
@@ -271,6 +306,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     @objc private func sliderMoved(_ sender: NSSlider) {
         guard let control = controls.first(where: { $0.slider === sender }) else { return }
         activatePreview()
+        schedulePreviewIdle()
         let spec = control.spec
         // A raw drag reports fractions of a step; what `apply` stores is the snapped
         // value, so the thumb and the readout both show that, clamped the same
@@ -288,11 +324,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         else { return }
         Settings.shared.set(keyPath, section.colorPresets[sender.tag].color)
         refreshSwatches()
+        // Picking a colour while an effect is up is still a look at a setting,
+        // so it holds the preview open on the same idle clock as a slider drag.
+        if previewRestore != nil { schedulePreviewIdle() }
     }
 
     @objc private func resetTapped(_ sender: Any?) {
         resetAll()
         showSection(currentSection)
+        // Reset is not a preview gesture, so it must not arm the idle tear-down.
+        previewIdleTimer?.invalidate()
+        previewIdleTimer = nil
     }
 
     // MARK: Preview
@@ -309,16 +351,49 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         setEffect(target)
     }
 
-    func windowWillClose(_ notification: Notification) {
-        if let restore = previewRestore {
-            setEffect(restore)
-            previewRestore = nil
+    /// Ends the preview on its own once the pointer goes quiet.
+    ///
+    /// A preview is a look at a setting, not a decision to show that effect for
+    /// the rest of the talk: the presenter drags a slider, checks the size
+    /// against the slide, moves on. Leaving the spotlight up afterwards means
+    /// forgetting to press Opt+Esc with a lens sitting on top of the deck, so
+    /// the effect is torn down here rather than left for the user to remember.
+    private func schedulePreviewIdle() {
+        previewIdleTimer?.invalidate()
+        let timer = Timer(timeInterval: Self.previewIdle, repeats: false) { [weak self] _ in
+            // The closure is `Sendable`, so the hop onto the main actor has to be
+            // spelled out rather than assumed from the run loop.
+            MainActor.assumeIsolated { self?.endPreview() }
         }
+        // `.common` so dragging a slider while the pointer scrolls a menu, or
+        // any other tracking loop is running, does not suspend the timer and
+        // leave the effect up for the length of that interaction.
+        RunLoop.main.add(timer, forMode: .common)
+        previewIdleTimer = timer
+    }
+
+    private func endPreview() {
+        previewIdleTimer?.invalidate()
+        previewIdleTimer = nil
+        guard let restore = previewRestore else { return }
+        previewRestore = nil
+        setEffect(restore)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        // The idle tear-down is what makes a preview self-clearing, but closing
+        // the panel has to end it too, or the restore lands minutes later — or
+        // after the user has already summoned a different effect by hand.
+        endPreview()
         // `window.frame` rather than `contentView.frame`: it is restored with
         // `setFrame(_:display:)`, and a frame saved from the content view
         // (or read back as one) drops the title bar height, so the panel crept
         // up the screen by that much on every close.
-        UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: Self.frameKey)
+        // `window.frame`'s origin, not the content view's: a content view always sits
+        // at (0, 0), so storing its rect loses the position entirely and the panel
+        // opens at the screen corner every launch. The size is deliberately not
+        // stored — it is fixed, so `contentSize` above is the only authority for it.
+        UserDefaults.standard.set(NSStringFromPoint(window.frame.origin), forKey: Self.frameKey)
     }
 
     // MARK: Helpers
