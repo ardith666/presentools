@@ -1,7 +1,6 @@
 cask "presentools" do
   version "0.3.0"
-  # Filled in after the release DMG is built; see knowledge/history.md.
-  sha256 ""
+  sha256 "878b948e30fa34d18797b19c9aee10553321f40c6888465cd0ca325bfaf81b5d"
 
   url "https://github.com/ardith666/presentools/releases/download/v#{version}/Presentools-#{version}.dmg"
   name "Presentools"
