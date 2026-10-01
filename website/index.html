@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presentools — Spotlight, Laser Pointer &amp; Zoom Lens for macOS</title>
+<meta name="description" content="Presentools is a free, open-source macOS app that adds a spotlight, laser pointer and zoom lens to any presentation. No accounts, no telemetry, no dependencies. MIT licensed.">
+<meta property="og:title" content="Presentools — Spotlight, Laser Pointer &amp; Zoom Lens for macOS">
+<meta property="og:description" content="Free, open-source presentation effects for macOS. Works over Keynote, PowerPoint, Slides, Zoom — anything.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://raw.githubusercontent.com/ardith666/presentools/main/website/asset/PresenTools.jpg">
+<meta property="og:image:width" content="1110">
+<meta property="og:image:height" content="979">
+<meta property="og:image:type" content="image/jpeg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="asset/PresenTools.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="asset/PresenTools.jpg">
+<style>
+  :root{
+    --bg:#08090c; --bg2:#0d0f14; --card:#11141b; --line:#1e232e;
+    --fg:#eef1f6; --mut:#98a1b3; --dim:#6b7488;
+    --amber:#ffb020; --amber-dim:#7a5510; --laser:#ff3b47;
+    --max:1120px; --r:14px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:84px}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  code,kbd{font-family:var(--mono)}
+
+  /* glow backdrop */
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(760px 420px at 50% -8%,rgba(255,176,32,.13),transparent 70%),
+      radial-gradient(520px 340px at 88% 12%,rgba(255,59,71,.07),transparent 70%),
+      linear-gradient(180deg,var(--bg2),var(--bg) 60%)}
+
+  /* nav */
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:rgba(8,9,12,.72);border-bottom:1px solid var(--line)}
+  nav{display:flex;align-items:center;gap:22px;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.02em;text-decoration:none}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--laser);
+    box-shadow:0 0 0 4px rgba(255,59,71,.18),0 0 14px var(--laser);flex:none}
+  .logo small{color:var(--dim);font-weight:400;font-size:12.5px;font-family:var(--mono)}
+  nav .links{margin-left:auto;display:flex;gap:24px;font-size:14.5px}
+  nav .links a{color:var(--mut);text-decoration:none}
+  nav .links a:hover{color:var(--fg)}
+  @media(max-width:720px){nav .links{display:none}}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    padding:13px 22px;border-radius:11px;font-weight:600;font-size:15px;
+    text-decoration:none;border:1px solid transparent;transition:.16s;white-space:nowrap}
+  .btn svg{width:17px;height:17px;flex:none}
+  .btn-p{background:linear-gradient(180deg,#ffc043,var(--amber));color:#1a1204;
+    box-shadow:0 6px 22px -8px rgba(255,176,32,.6)}
+  .btn-p:hover{transform:translateY(-1px);box-shadow:0 10px 30px -8px rgba(255,176,32,.75)}
+  .btn-s{background:var(--card);border-color:var(--line);color:var(--fg)}
+  .btn-s:hover{border-color:#333b4b;background:#161a22}
+  .btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* hero */
+  .hero{padding:88px 0 72px;text-align:center;position:relative}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;
+    border:1px solid var(--line);background:var(--card);color:var(--mut);
+    font-size:13px;font-family:var(--mono);text-decoration:none}
+  .badge b{color:var(--amber);font-weight:600}
+  .badge:hover{border-color:#39424f;color:var(--fg)}
+  h1{font-size:clamp(2.5rem,7vw,4.4rem);line-height:1.03;letter-spacing:-.04em;
+    margin:26px 0 0;font-weight:700}
+  h1 em{font-style:normal;background:linear-gradient(180deg,#fff,var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{max-width:640px;margin:22px auto 0;color:var(--mut);font-size:clamp(1rem,2.4vw,1.19rem)}
+  .hero .btn-row{justify-content:center;margin-top:34px}
+  .meta{margin-top:18px;color:var(--dim);font-size:13.5px;font-family:var(--mono)}
+  .meta a{color:var(--mut)}
+
+  /* stage mock */
+  .stage{margin:64px auto 0;max-width:900px;aspect-ratio:16/9;border-radius:var(--r);
+    border:1px solid var(--line);background:
+      linear-gradient(180deg,#171b23,#0e1116);position:relative;overflow:hidden;
+    box-shadow:0 40px 90px -50px #000}
+  .dim{position:absolute;inset:0;background:#0e1116}
+  .dim video{width:100%;height:100%;object-fit:cover;display:block}
+  .kbdtag{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+    display:flex;gap:6px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .kbdtag span{background:#0a0c10;border:1px solid var(--line);padding:3px 8px;border-radius:6px}
+
+  /* sections */
+  section{padding:84px 0;border-top:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber);margin:0 0 12px}
+  h2{font-size:clamp(1.7rem,4vw,2.4rem);letter-spacing:-.03em;margin:0 0 14px;font-weight:680}
+  h3{font-size:1.06rem;margin:0 0 6px;letter-spacing:-.01em}
+  .lead{color:var(--mut);max-width:640px;margin:0 0 44px}
+
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:26px 24px;transition:.18s}
+  .card:hover{border-color:#2e3644;transform:translateY(-2px)}
+  .ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:#171b24;border:1px solid var(--line);margin-bottom:16px}
+  .ico svg{width:19px;height:19px;stroke:var(--amber);fill:none;stroke-width:1.7}
+  .card p{color:var(--mut);font-size:14.6px;margin:0}
+  .tag{display:inline-block;margin-top:14px;font-family:var(--mono);font-size:11.5px;
+    color:var(--dim);border:1px solid var(--line);padding:3px 8px;border-radius:6px}
+
+  /* hotkeys */
+  .keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .keyrow{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px;display:flex;align-items:center;gap:14px}
+  .keyrow .info{font-size:14.4px;color:var(--mut)}
+  kbd{background:#0a0c11;border:1px solid #2a3140;border-bottom-width:2px;border-radius:7px;
+    padding:5px 10px;font-size:13.5px;color:var(--fg);min-width:40px;text-align:center;
+    display:inline-block;flex:none}
+
+  /* install */
+  .steps{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:780px){.steps{grid-template-columns:1fr}}
+  pre{margin:16px 0 0;background:#080a0e;border:1px solid var(--line);border-radius:11px;
+    padding:16px 18px;overflow-x:auto;font-size:13.4px;line-height:1.75;color:#cbd3e1}
+  pre .c{color:var(--dim)}
+  pre .p{color:var(--amber)}
+  .note{margin-top:18px;padding:15px 17px;border-radius:11px;font-size:14px;
+    border:1px solid var(--amber-dim);background:rgba(255,176,32,.06);color:#e4d3b0}
+  .note b{color:var(--amber)}
+
+  /* open source */
+  .oss{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .oss div{background:var(--bg2);padding:24px 20px}
+  .oss b{display:block;font-size:1.5rem;letter-spacing:-.02em}
+  .oss span{color:var(--dim);font-size:13.2px;font-family:var(--mono)}
+  .repo{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:22px 24px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;
+    justify-content:space-between}
+  .repo code{font-size:14px;color:var(--amber)}
+  .repo p{margin:5px 0 0;color:var(--mut);font-size:14.2px;max-width:520px}
+
+  /* faq */
+  details{border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:11px}
+  summary{padding:17px 20px;cursor:pointer;font-weight:550;font-size:15.2px;list-style:none;
+    display:flex;justify-content:space-between;gap:16px;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--amber);font-size:20px;font-weight:400;line-height:1}
+  details[open] summary::after{content:"–"}
+  details p{margin:0;padding:0 20px 19px;color:var(--mut);font-size:14.6px}
+  details code{background:#0a0c11;border:1px solid var(--line);padding:1px 6px;border-radius:5px;font-size:13px}
+
+  footer{border-top:1px solid var(--line);padding:38px 0;color:var(--dim);font-size:13.6px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+  footer a{color:var(--mut)}
+
+  .reveal{opacity:0;transform:translateY(16px);transition:.6s cubic-bezier(.2,.7,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none;transition:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap"><nav>
+    <a class="logo" href="#top"><span class="dot"></span>Presentools <small>v0.3.0</small></a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#shortcuts">Shortcuts</a>
+      <a href="#install">Install</a>
+      <a href="#source">Source</a>
+      <a href="https://github.com/ardith666/presentools">GitHub&nbsp;↗</a>
+    </div>
+  </nav></div>
+</header>
+
+<div class="wrap" id="top">
+
+<!-- BUMP POINT: version + DMG filename live here. Keep in sync with homebrew/Presentools.rb
+     and bundle.sh before tagging a release. Latest release is v0.3.0. -->
+<div style="display:none" data-version="0.3.0"></div>
+
+<section class="hero" style="border:0">
+  <a class="badge" href="https://github.com/ardith666/presentools/releases/tag/v0.3.0">
+    <b>Open source</b> · MIT · v0.3.0 available
+  </a>
+  <h1>Make your audience<br>look <em>where you point</em>.</h1>
+  <p class="sub">Presentools adds a spotlight, a laser pointer and a zoom lens to
+  <em style="font-style:normal;color:var(--fg)">any</em> app on your Mac — Keynote, PowerPoint,
+  Google Slides, Zoom, a PDF. One native app, no accounts, no telemetry, no dependencies.</p>
+
+  <div class="btn-row">
+    <a class="btn btn-p" href="https://github.com/ardith666/presentools/releases/download/v0.3.0/Presentools-0.3.0.dmg" download>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Download for macOS
+    </a>
+    <a class="btn btn-s" href="https://github.com/ardith666/presentools">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+      Star on GitHub
+    </a>
+    <a class="btn btn-s" href="https://github.com/ardith666/presentools/releases">All releases</a>
+  </div>
+  <p class="meta">Latest <b>0.3.0</b> · 1.1 MB · ad-hoc signed · requires macOS 27 or later ·
+    <a href="https://github.com/ardith666/presentools#installation">install notes</a></p>
+
+  <div class="stage" aria-hidden="true">
+    <div class="dim">
+      <video src="asset/site-demo.mp4" poster="asset/site-demo.jpg"
+             autoplay muted loop playsinline preload="metadata" disablepictureinpicture></video>
+    </div>
+    <div class="kbdtag"><span>⌥1 spotlight</span><span>⌥2 laser</span><span>⌥3 zoom</span><span>⌥Esc all off</span></div>
+  </div>
+</section>
+
+<section id="features">
+  <p class="eyebrow">Features</p>
+  <h2>Three effects. Zero setup.</h2>
+  <p class="lead">Presentools draws a transparent overlay above everything on screen and
+  follows your cursor at 60&nbsp;Hz. Your deck never leaves the app you already use.</p>
+  <div class="grid3">
+    <div class="card reveal">
+      <div class="ico"><svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+      <h3>Spotlight</h3>
+      <p>Dims the whole screen except a soft pool of light under your cursor. Attention goes
+      to one part of the slide — the diagram, the number, the caveat line.</p>
+      <span class="tag">no permission needed</span>
+    </div>
+    <div class="card reveal">
+      <div class="ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/><circle cx="12" cy="12" r="2.4"/></svg></div>
+      <h3>Laser Pointer</h3>
+      <p>A small, high-contrast dot that stays exactly where you left it while the audience
+      looks. It does not fade, drift or scroll away with the slide.</p>
+      <span class="tag">no permission needed</span>
+    </div>
+    <div class="card reveal">
+      <div class="ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.8v5.4M7.8 10.5h5.4"/></svg></div>
+      <h3>Zoom Lens</h3>
+      <p>Magnifies whatever is under the cursor, so a footnote or a config line is readable
+      from the back row. Follows the mouse in 8&nbsp;Hz steps to stay cool.</p>
+      <span class="tag">asks for Screen Recording</span>
+    </div>
+  </div>
+</section>
+
+<section id="shortcuts">
+  <p class="eyebrow">Shortcuts</p>
+  <h2>Four keys. Always the same.</h2>
+  <p class="lead">Every effect is a toggle — press once to turn it on, press again to turn it off.
+  <b style="color:var(--fg)">⌥Esc</b> kills everything, whatever is active, because that is the
+  moment you need it.</p>
+  <div class="keys">
+    <div class="keyrow reveal"><kbd>⌥0</kbd><span class="info">All effects off</span></div>
+    <div class="keyrow reveal"><kbd>⌥1</kbd><span class="info">Spotlight</span></div>
+    <div class="keyrow reveal"><kbd>⌥2</kbd><span class="info">Laser Pointer</span></div>
+    <div class="keyrow reveal"><kbd>⌥3</kbd><span class="info">Zoom Lens</span></div>
+    <div class="keyrow reveal"><kbd>⌥Esc</kbd><span class="info">All off — panic key</span></div>
+  </div>
+  <p class="lead" style="margin:22px 0 0;font-size:14.4px">Open <b style="color:var(--fg)">Shortcuts…</b> from the
+  menu bar to rebind any key, or switch an effect to <i>hold</i> or <i>auto-repeat</i> if you prefer
+  that over a toggle.</p>
+</section>
+
+<section id="install">
+  <p class="eyebrow">Install</p>
+  <h2>Drag it in, or brew it.</h2>
+  <div class="steps">
+    <div class="card reveal">
+      <h3>DMG — recommended</h3>
+      <p>Download the <code>.dmg</code>, open it, drag <b>Presentools.app</b> into
+      <b>/Applications</b>. First launch asks whether to start at login.</p>
+      <pre><span class="c"># 1.1 MB, no installer, no admin rights</span>
+<span class="c"># then:</span>
+open Presentools-<span class="p">0.3.0</span>.dmg</pre>
+    </div>
+    <div class="card reveal">
+      <h3>Homebrew</h3>
+      <p>A cask lives in this repo's tap, wired to the release asset and its published
+      SHA-256 digest, so <code>brew upgrade</code> just works.</p>
+      <pre>brew tap ardith666/presentools
+brew install --cask presentools</pre>
+    </div>
+  </div>
+  <div class="note">
+    <b>First launch says "unidentified developer"?</b> That is expected. Presentools is
+    ad-hoc signed — there is no paid Apple Developer ID behind it. Right-click (or
+    Control-click) Presentools in Applications and choose <b>Open</b> once. After that it
+    launches normally, forever.
+  </div>
+  <div class="note" style="border-color:#2a3140;background:rgba(255,255,255,.03);color:var(--mut)">
+    <b style="color:var(--fg)">Screen Recording permission</b> is requested on first use of
+    Zoom Lens only. Decline it and Spotlight and Laser Pointer still work perfectly — one
+    degraded feature, not a dead app.
+  </div>
+</section>
+
+<section id="source">
+  <p class="eyebrow">Open source</p>
+  <h2>Read it. Fork it. Ship it.</h2>
+  <p class="lead">The whole app is 3,200 lines of Swift and AppKit with <b style="color:var(--fg)">zero
+  third-party dependencies</b>. There is nothing phoning home, no licence server, no crash
+  reporter, no analytics. If you want a different effect, add it in a weekend.</p>
+  <div class="oss reveal">
+    <div><b>MIT</b><span>licence</span></div>
+    <div><b>0</b><span>dependencies</span></div>
+    <div><b>0</b><span>trackers</span></div>
+    <div><b>1.1 MB</b><span>download</span></div>
+    <div><b>27+</b><span>macOS only</span></div>
+  </div>
+  <div class="repo reveal">
+    <div>
+      <code>github.com/ardith666/presentools</code>
+      <p>Want a custom effect, a different hotkey layout, a signed build for your team, or
+      a port? Clone it — the build is three commands.</p>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-s" href="https://github.com/ardith666/presentools">Customise it ↗</a>
+      <a class="btn btn-s" href="https://github.com/ardith666/presentools/blob/main/README.md#development">Build from source</a>
+    </div>
+  </div>
+  <pre style="margin-top:20px"><span class="c"># build it yourself — needs Xcode 27 / Swift 6.2+</span>
+git clone https://github.com/ardith666/presentools.git &amp;&amp; cd presentools
+swift build -c release
+./bundle.sh release
+.build/release/presentools --selftest   <span class="c"># renders every effect, asserts on pixels</span></pre>
+</section>
+
+<section>
+  <p class="eyebrow">FAQ</p>
+  <h2>The things people ask</h2>
+  <div style="max-width:760px;margin-top:34px">
+    <details class="reveal"><summary>Does it work inside PowerPoint or Keynote?</summary>
+      <p>Yes — and that is the point. Presentools is a transparent overlay that sits above
+      whatever is on screen, so it works over any app: presentation software, a PDF in Preview,
+      a browser deck, a video call. Your deck is not imported, converted, or re-rendered.</p></details>
+    <details class="reveal"><summary>Why macOS 27 and later?</summary>
+      <p>Presentools targets macOS 27 only, with no back-compatibility branches — the window
+      and overlay APIs it needs exist there. That keeps the codebase small instead of carrying
+      availability checks for a dozen older releases.</p></details>
+    <details class="reveal"><summary>Will an update break my Screen Recording permission?</summary>
+      <p>No, deliberately. An update downloads the new <code>.dmg</code>, verifies its SHA-256
+      against the digest in the release notes, and opens the folder — it never replaces the
+      running app in place. Replacing a signed bundle in place can silently reset the
+      permission grant and break Zoom Lens with no obvious cause.</p></details>
+    <details class="reveal"><summary>Is it really free, with no catch?</summary>
+      <p>MIT licensed, no paid tier, no account, no telemetry, no network calls except the
+      release check you can turn off in the menu bar. If it stops being useful to you, you
+      already have the source.</p></details>
+    <details class="reveal"><summary>Can I turn off the update check?</summary>
+      <p>Yes — uncheck <b>Check for Updates Automatically</b> in the menu bar, or run
+      <b>Check for Updates…</b> on your own schedule.</p></details>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Presentools · MIT licensed · built for people who present</span>
+    <span><a href="https://github.com/ardith666/presentools">Source</a> ·
+      <a href="https://github.com/ardith666/presentools/issues">Report an issue</a> ·
+      <a href="https://github.com/ardith666/presentools/releases">Releases</a></span>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(
+    es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')),
+    { rootMargin: '0px 0px -8% 0px' }
+  );
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // decorative autoplay video: hold still for reduced-motion users
+  const clip = document.querySelector('.dim video');
+  if (clip && matchMedia('(prefers-reduced-motion: reduce)').matches) clip.pause();
+</script>
+</body>
+</html>
