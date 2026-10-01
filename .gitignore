@@ -1,0 +1,17 @@
+# SwiftPM build products — 482 MB of object files, regenerable
+.build/
+
+# Bundle output from bundle.sh / make-dmg.sh — regenerable
+build/
+*.dmg
+
+# Scratch space for the superpowers workflow: task briefs, review packages,
+# progress ledger. Regenerable, and gitignored, so `git clean -fdx` can
+# destroy it without losing anything durable.
+.superpowers/
+
+.DS_Store
+*.log
+# Agent workflow scratch: plans are per-task execution steps with local
+# absolute paths. The specs/ next to them are the durable design record.
+docs/superpowers/plans/
