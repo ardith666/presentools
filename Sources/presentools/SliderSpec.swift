@@ -37,7 +37,8 @@ struct SliderSection {
     ///
     /// Usually that is the section's own effect. The shared ring is the exception:
     /// it belongs to the spotlight and the lens alike, so the Edge section has no
-    /// effect of its own and previews onto whichever of those is already up.
+    /// effect of its own: it previews onto whichever of those is already up, and
+    /// falls back to the spotlight when neither is.
     let preview: (Effect) -> Effect
 
     func previewEffect(current: Effect) -> Effect {

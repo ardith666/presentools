@@ -272,6 +272,13 @@ enum SelfTest {
             expect("has \(want)", labels.filter { $0 == want }.count == 1)
         }
         expect("no duplicate labels", Set(labels).count == labels.count)
+
+        // Section order is the sidebar the user reads top to bottom, specified as
+        // Spotlight / Zoom Lens / Laser Pointer / Edge. Expected titles are literal
+        // so reversing the table fails instead of rendering the sidebar backwards.
+        let order: [String] = ["Spotlight", "Zoom Lens", "Laser Pointer", "Edge"]
+        expect("4 sections declared", SliderSection.all.count == order.count)
+        expect("sidebar order", SliderSection.all.map(\.title) == order)
         let keypaths: [String: ReferenceWritableKeyPath<Settings, CGFloat>] = [
             "Circle": \.spotlightRadius,
             "Darkness": \.spotlightDim,
@@ -302,9 +309,23 @@ enum SelfTest {
             }
         }
 
-        // Colour sections carry a keypath or the swatches cannot write anywhere.
+        // Colour sections carry a keypath or the swatches cannot write anywhere,
+        // and it has to be the one for that section's own setting: a swapped
+        // keypath compiles fine and silently recolours the neighbouring effect.
+        let colorKeypaths: [String: ReferenceWritableKeyPath<Settings, NSColor>] = [
+            "Laser Pointer": \.laserColor,
+            "Edge": \.ringColor,
+        ]
         for section in SliderSection.all where !section.colorPresets.isEmpty {
             expect("\(section.title) has a colour keypath", section.colorKeyPath != nil)
+            guard let want = colorKeypaths[section.title] else {
+                expect("\(section.title) has an expected colour keypath", false)
+                continue
+            }
+            expect(
+                "\(section.title) drives its own colour",
+                section.colorKeyPath == want
+            )
         }
 
         // Clamping is the whole guard against a value written outside the range
