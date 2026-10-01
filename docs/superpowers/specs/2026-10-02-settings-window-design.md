@@ -68,6 +68,16 @@ Frame is persisted in `UserDefaults` under `settingsWindowFrame` and restored
 on open, so the presenter places it once. A panel whose position resets on
 every open is a panel that gets closed instead.
 
+The stored rect is `window.frame`, not `contentView.frame`. A window's content
+view always sits at origin `(0, 0)` — the screen position lives on the window —
+so persisting the content rect and reading it back as a `contentRect:` writes a
+rect that can never carry a position, and the panel opens pinned to the primary
+display's top-left corner on every launch. Restoring goes through
+`setFrame(_:display:)`, not `contentRect:`.
+
+The size is fixed, not user-resizable, so only the origin is worth persisting
+across launches; the size is re-derived from the layout each time.
+
 ## Decision: the menu bar keeps exactly one item
 
 `addSettings` collapses to a single `Settings…` item. `Reset to Defaults` moves
@@ -81,7 +91,13 @@ and the `swatch(_:)` helper survive, relocated into the window.
 
 ## Layout
 
-`NSSplitView`, left sidebar and right pane:
+A horizontal `NSStackView`, left sidebar and right pane. The divider is fixed:
+nothing here is resizable, and `Settings` has no place to remember a dragged
+divider, so `NSSplitView` would have offered a control with no way to persist its
+one real behaviour. An `NSSplitView` was the first choice and was measured not to
+lay out — its own `fittingSize` for a sidebar column ignores the sibling pane's
+minimum, so the window collapsed to the sidebar's width and clipped the sliders.
+A stack view lets both sides state their own minimum and Auto Layout resolves it.
 
 - **Sidebar** — `NSTableView`, single column, no header, 28pt rows, selection
   highlight on. Four rows in order: Spotlight, Zoom Lens, Laser Pointer, Edge.

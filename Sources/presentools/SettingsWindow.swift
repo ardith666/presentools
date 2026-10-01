@@ -13,7 +13,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     private static let rowHeight: CGFloat = 28
     private static let labelWidth: CGFloat = 74
     private static let readoutWidth: CGFloat = 62
-    private static let contentSize = NSSize(width: 470, height: 268)
+    /// 488 wide is the sum of the parts: sidebar 148 + `columns` spacing 8 + the
+    /// 332 the widest pane needs (a 74 pt label, an 8 pt gap, a 180 pt slider
+    /// floor, an 8 pt gap, a 62 pt readout). Anything narrower clips the pane.
+    private static let contentSize = NSSize(width: 488, height: 268)
     private static let frameKey = "settingsWindowFrame"
 
     private let currentEffect: () -> Effect
@@ -61,16 +64,20 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         // or a change made while this window was never open. Re-read before
         // showing rather than trusting what the controls last held.
         if table.selectedRow < 0 {
+            // Selecting fires `tableViewSelectionDidChange`, which is what
+            // builds the pane — calling `showSection` here as well would build
+            // it twice on the first open.
             table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        } else {
+            showSection(table.selectedRow)
         }
-        showSection(max(table.selectedRow, 0))
         window.orderFront(nil)
     }
 
     private func build() {
         let saved = UserDefaults.standard.string(forKey: Self.frameKey).flatMap(NSRectFromString)
         let panel = NSPanel(
-            contentRect: saved ?? NSRect(origin: .zero, size: Self.contentSize),
+            contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable, .miniaturizable, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -84,21 +91,34 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.delegate = self
-        if saved == nil { panel.center() }
+        // `setFrame(_:display:)` rather than passing the saved rect to
+        // `contentRect:` above: the stored value is a *frame* (it includes the
+        // title bar), and handing a frame to `contentRect:` treats it as a
+        // content rect, so the window came back a title-bar height too low and
+        // walked further down with every save/open cycle.
+        if let saved {
+            panel.setFrame(saved, display: false)
+        } else {
+            panel.center()
+        }
         window = panel
 
-        guard let content = panel.contentView else { return }
+        // Force-unwrap, not a guard: a panel built here with `defer: false` and
+        // a content rect always has a content view, and a guard would return
+        // with `table`/`pane` still nil to crash later with a worse message.
+        let content = panel.contentView!
 
-        // A plain horizontal stack rather than an `NSSplitView`. The sidebar is
-        // pinned to a fixed width and the divider is not draggable, so the split
-        // view buys nothing — and it assigns its own subview frames, which wins
-        // against the constraints below and left both panes full-width and
-        // overlapping.
-        let split = NSStackView()
-        split.orientation = .horizontal
-        split.alignment = .top
-        split.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(split)
+        // A plain horizontal stack rather than an `NSSplitView`. Measured: an
+        // `NSSplitView` reported a `fittingSize` that ignored the sibling pane's
+        // own minimum width, so sizing the window to it produced a pane narrower
+        // than the widest slider row and the readout clipped. `contentSize`
+        // above carries that minimum instead.
+        let columns = NSStackView()
+        columns.orientation = .horizontal
+        columns.alignment = .top
+        columns.spacing = 8
+        columns.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(columns)
 
         let sidebar = NSScrollView()
         sidebar.translatesAutoresizingMaskIntoConstraints = false
@@ -112,7 +132,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         table.dataSource = self
         table.delegate = self
         sidebar.documentView = table
-        split.addArrangedSubview(sidebar)
+        columns.addArrangedSubview(sidebar)
         self.table = table
 
         let pane = NSStackView()
@@ -120,7 +140,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         pane.alignment = .leading
         pane.spacing = 12
         pane.translatesAutoresizingMaskIntoConstraints = false
-        split.addArrangedSubview(pane)
+        columns.addArrangedSubview(pane)
         self.pane = pane
 
         let titleLabel = NSTextField(labelWithString: "")
@@ -144,10 +164,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         self.titleLabel = titleLabel
 
         NSLayoutConstraint.activate([
-            split.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            split.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            split.topAnchor.constraint(equalTo: content.topAnchor),
-            split.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -10),
+            columns.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            columns.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            columns.topAnchor.constraint(equalTo: content.topAnchor),
+            columns.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -10),
             sidebar.widthAnchor.constraint(equalToConstant: Self.sidebarWidth),
 
             footer.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 14),
@@ -252,12 +272,13 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         guard let control = controls.first(where: { $0.slider === sender }) else { return }
         activatePreview()
         let spec = control.spec
-        // A raw drag reports fractions of a step; the readout has to show a
-        // value the user can reproduce from the stored setting.
-        let snapped = Self.snap(sender.doubleValue, to: spec.step)
-        sender.doubleValue = snapped
-        spec.apply(CGFloat(snapped))
-        control.readout.stringValue = spec.format(CGFloat(snapped))
+        // A raw drag reports fractions of a step; what `apply` stores is the snapped
+        // value, so the thumb and the readout both show that, clamped the same
+        // way, or the panel would disagree with the setting it just wrote.
+        let snapped = spec.clamped(CGFloat(Self.snap(sender.doubleValue, to: spec.step)))
+        sender.doubleValue = Double(snapped)
+        spec.apply(snapped)
+        control.readout.stringValue = spec.format(snapped)
     }
 
     @objc private func pickColor(_ sender: NSButton) {
@@ -293,12 +314,11 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             setEffect(restore)
             previewRestore = nil
         }
-        // `contentView` rather than `frame`: this is stored as a content rect
-        // and read back into `contentRect:`, and mixing the two would drift by
-        // the title bar height on every open.
-        if let content = window.contentView {
-            UserDefaults.standard.set(NSStringFromRect(content.frame), forKey: Self.frameKey)
-        }
+        // `window.frame` rather than `contentView.frame`: it is restored with
+        // `setFrame(_:display:)`, and a frame saved from the content view
+        // (or read back as one) drops the title bar height, so the panel crept
+        // up the screen by that much on every close.
+        UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: Self.frameKey)
     }
 
     // MARK: Helpers
