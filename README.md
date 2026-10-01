@@ -2,7 +2,7 @@
 
 Minimal presentation utilities for macOS: Spotlight, Laser Pointer, and Zoom Lens. Global hotkeys, toggle-based activation, a small no-dependency native app.
 
-[![Presentools in action — click to play the 88-second demo](website/asset/site-demo.jpg)](website/asset/site-demo.mp4)
+[![Presentools in action — click to play the 88-second demo](website/asset/site-demo.jpeg)](website/asset/site-demo.mp4)
 
 - **Website:** [https://digitechnesia.my.id/presentools/](https://digitechnesia.my.id/presentools/)
 
