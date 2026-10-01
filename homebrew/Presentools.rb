@@ -7,7 +7,7 @@ cask "presentools" do
   desc "Spotlight, Laser Pointer, and Zoom Lens for macOS presentations"
   homepage "https://github.com/ardith666/presentools"
 
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :tahoe
 
   app "Presentools.app"
 
