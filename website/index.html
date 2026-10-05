@@ -171,7 +171,7 @@
 
 <header>
   <div class="wrap"><nav>
-    <a class="logo" href="#top"><span class="dot"></span>Presentools <small>v0.3.0</small></a>
+    <a class="logo" href="#top"><span class="dot"></span>Presentools</a>
     <div class="links">
       <a href="#features">Features</a>
       <a href="#shortcuts">Shortcuts</a>
@@ -184,13 +184,15 @@
 
 <div class="wrap" id="top">
 
-<!-- BUMP POINT: version + DMG filename live here. Keep in sync with homebrew/Presentools.rb
-     and bundle.sh before tagging a release. Latest release is v0.3.0. -->
-<div style="display:none" data-version="0.3.0"></div>
+<!-- Download link uses /releases/latest/download/Presentools.dmg, so it always
+     resolves to the newest release and never goes stale. That only works because
+     the release asset is named without a version. Do NOT reintroduce
+     Presentools-<version>.dmg as the asset name. -->
+<div style="display:none" data-version="latest"></div>
 
 <section class="hero" style="border:0">
-  <a class="badge" href="https://github.com/ardith666/presentools/releases/tag/v0.3.0">
-    <b>Open source</b> · MIT · v0.3.0 available
+  <a class="badge" href="https://github.com/ardith666/presentools/releases/latest">
+    <b>Open source</b> · MIT · latest release
   </a>
   <h1>Make your audience<br>look <em>where you point</em>.</h1>
   <p class="sub">Presentools adds a spotlight, a laser pointer and a zoom lens to
@@ -198,7 +200,7 @@
   Google Slides, Zoom, a PDF. One native app, no accounts, no telemetry, no dependencies.</p>
 
   <div class="btn-row">
-    <a class="btn btn-p" href="https://github.com/ardith666/presentools/releases/download/v0.3.0/Presentools-0.3.0.dmg" download>
+    <a class="btn btn-p" href="https://github.com/ardith666/presentools/releases/latest/download/Presentools.dmg" download>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
       Download for macOS
     </a>
@@ -208,7 +210,7 @@
     </a>
     <a class="btn btn-s" href="https://github.com/ardith666/presentools/releases">All releases</a>
   </div>
-  <p class="meta">Latest <b>0.3.0</b> · 1.1 MB · ad-hoc signed · requires macOS 15.2 or later ·
+  <p class="meta">Latest release · 812 KB · ad-hoc signed · requires macOS 15.2 or later ·
     <a href="https://github.com/ardith666/presentools#installation">install notes</a></p>
 
   <div class="stage" aria-hidden="true">
@@ -276,9 +278,9 @@
       <h3>DMG — recommended</h3>
       <p>Download the <code>.dmg</code>, open it, drag <b>Presentools.app</b> into
       <b>/Applications</b>. First launch asks whether to start at login.</p>
-      <pre><span class="c"># 1.1 MB, no installer, no admin rights</span>
+      <pre><span class="c"># 812 KB, no installer, no admin rights</span>
 <span class="c"># then:</span>
-open Presentools-<span class="p">0.3.0</span>.dmg</pre>
+open Presentools.dmg</pre>
     </div>
     <div class="card reveal">
       <h3>Homebrew</h3>

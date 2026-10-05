@@ -17,7 +17,11 @@ STAGE="build/dmg"
 [ -f build/Presentools.icns ] || { echo "error: no build/Presentools.icns"; exit 1; }
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")"
-DMG="build/Presentools-${VERSION}.dmg"
+# Filename has no version on purpose. The website links to
+# /releases/latest/download/Presentools.dmg, which only resolves if the asset
+# name is version-independent — otherwise every release breaks the download
+# button on the landing page. The version still shows on the mounted volume.
+DMG="build/Presentools.dmg"
 VOL="Presentools ${VERSION}"
 
 rm -rf "$STAGE" "$DMG"
