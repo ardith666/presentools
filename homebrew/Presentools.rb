@@ -1,10 +1,16 @@
 cask "presentools" do
   version "0.5.0"
-  sha256 "d90449c314e1c3d1123530ae92261f9fcf1aeb34322ea514e77fc0551848b431"
+  sha256 "9e281513e19795ca4f11ab70a5a03f207539e8c8ca12f53e03e31c703e99890f"
 
   # The asset is named without a version so the website can link to
   # /releases/latest/download/Presentools.dmg and never go stale. The tag is
   # still pinned here: a cask URL must resolve to one immutable artifact.
+  #
+  # The sha256 above is of the exact file uploaded as this release's asset.
+  # `make-dmg.sh` is not byte-reproducible — `hdiutil create` mints a new
+  # volume identifier every run, so two consecutive builds of identical input
+  # hash differently. Rebuild and re-upload without re-running the script, or
+  # the digest below no longer matches what Homebrew downloads.
   url "https://github.com/ardith666/presentools/releases/download/v#{version}/Presentools.dmg"
   name "Presentools"
   desc "Spotlight, Laser Pointer, and Zoom Lens for macOS presentations"
