@@ -24,7 +24,20 @@ Presentools is ad-hoc signed — there is no paid Developer ID behind it. The fi
 
 ### DMG
 
-Download the latest `.dmg` from [Releases](https://github.com/ardith666/presentools/releases), open it, and drag `Presentools.app` to `/Applications`. If Gatekeeper blocks the first launch, right-click **Open** once.
+Download the latest `.dmg` from [Releases](https://github.com/ardith666/presentools/releases), open it, and drag `Presentools.app` to `/Applications`.
+
+<div class="warning">
+<b>First launch may say “Presentools is damaged” or “Presentools is from an unidentified developer.”</b>
+<p>This happens because the app is ad-hoc signed (no Apple Developer ID / notarization). The DMG-normalised permissions now ensure the binary is world-readable, so Gatekeeper does <b>not</b> reject it as “damaged” from the bundle mode mismatch.</p>
+<b>Two ways to open it:</b>
+<ol>
+<li><b>Right-click (Control‑click) Presentools in Applications and choose Open.</b> macOS will ask “Are you sure you want to open this?” — click <b>Open</b>.</li>
+<li>If the <b>Open</b> button does not appear (rare, depends on macOS version), go to <b>System Settings > Privacy & Security</b>, find the <b>“Presentools was blocked from opening because it is from an unidentified developer”</b> banner, and click <b>Open Anyway</b>.</li>
+</ol>
+<p>After the first Open, the app is trusted and launches normally. The Screen Recording grant is preserved because the bundle is not replaced in-place.</p>
+</div>
+
+If Gatekeeper blocks the first launch, right-click **Open** once.
 
 ## Shortcuts
 
