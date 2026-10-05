@@ -1,6 +1,6 @@
 cask "presentools" do
-  version "0.5.0"
-  sha256 "9e281513e19795ca4f11ab70a5a03f207539e8c8ca12f53e03e31c703e99890f"
+  version "0.5.1"
+  sha256 "8a0f4bc305fce2909085f397fd2a85426e132e75d64bd9490605df5ba0b07b37"
 
   # The asset is named without a version so the website can link to
   # /releases/latest/download/Presentools.dmg and never go stale. The tag is
