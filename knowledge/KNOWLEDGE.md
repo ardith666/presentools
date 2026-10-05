@@ -10,7 +10,7 @@ Sasaran: 3 efek yang benar, ~500 baris logika, tray-only, tanpa window app yang 
 
 ## Architecture
 
-**Stack:** Swift 6.4 · macOS 27.0 (khusus 27, tanpa back-compat) · SwiftPM · nol dependency pihak ketiga
+**Stack:** Swift 6.4 · macOS 15.2 (floor API, tanpa back-compat) · SwiftPM · nol dependency pihak ketiga
 
 **Struktur:**
 
@@ -40,7 +40,8 @@ Konsekuensi yang disengaja: kalau user deny Screen Recording, **2 dari 3 fitur t
 | 2026-09-30 | Scope = 3 efek saja (spotlight/zoom/laser), tool bukan presenter app | Presenter app butuh import deck + renderer sendiri, effort 5x. Tool overlay jalan di app apa pun | Importer PDF/HTML deck; companion page web |
 | 2026-09-30 | Swift / AppKit, bukan Electron | Electron = 150MB binary + 200MB RAM untuk 3 efek canvas. Overhead tanpa manfaat | Electron; Tauri (butuh Rust-side untested untuk `canJoinAllSpaces` + `ignoresMouseEvents`); Flutter (bisa cross-platform tapi ~15MB, v1 ini tidak perlu) |
 | 2026-09-30 | Mac only v1 | Windows = rewrite (C#/WinUI), bukan port. Tapi logikanya cuma ~500 baris, jadi biaya riil kecil | — |
-| 2026-09-30 | Deployment target **27.0** sahaja | Glass API native, tanpa branch/fallback | `15.0` + `if #available` (fallback ~15 baris tapi nyata, dan user pilih spesifik 27) |
+| 2026-09-30 | ~~Deployment target 27.0 sahaja~~ — **diganti 2026-10-05, lihat baris bawah** | Alasannya salah: tidak ada Glass API di kode | — |
+| 2026-10-05 | Deployment target **15.2** | `SCScreenshotManager.captureImage(in:)` debut 15.2 dan itu satu-satunya API yang neuer. Floor 15.2 → 0 baris `#available`, 0 fallback | Floor 14.0 (butuh capture path alternatif ~40 baris); tetap 27.0 |
 | 2026-09-30 | Build = SwiftPM + script rakit `.app` | `xcodegen`/`tuist`/`swiftformat` tidak ada di mesin ini. Nol install baru | Hand-write `.xcodeproj`; `brew install xcodegen` |
 | 2026-09-30 | Project di `<webroot>/lab/presentools` | Ada precedent non-PHP di `lab/` (`docker`, `f-license`). SwiftPM binary tidak butuh nginx | `~/code/presentools` |
 
@@ -73,7 +74,9 @@ Total 780 baris (7 file Swift + 41 baris `bundle.sh`), nol dependency pihak keti
 
 - [2026-09-30] `CGPreflightScreenCaptureAccess()` return **`Bool`**, bukan enum. `CGPreflightScreenCaptureAccessStatus` **tidak ada** di SDK 27. Authority untuk "apakah capture bisa jalan" = `SCShareableContent`, bukan API CG. (Compile error yang membongkar ini.)
 - [2026-09-30] SwiftPM binary tanpa `.app` → `SCShareableContent` reported **0 display(s)**. Penyebab: proses tanpa identitas bundle tidak dikenali SCK di macOS 15+. Bukan bug — harus hilang setelah Unit 6. **Kalau masih 0 setelah dibundle, itu masalah beneran.**
-- [2026-09-30] Liquid Glass di SDK 27: SwiftUI `GlassButtonStyle` + `GlassProminentButtonStyle`; AppKit `NSGlassEffectView` dengan `effectIsInteractive` (macOS 27.0). Ada modifier `glassProminent`. Verified via grep swiftinterface + header.
+- [2026-09-30] Liquid Glass di SDK 27: SwiftUI `GlassButtonStyle` + `GlassProminentButtonStyle`; AppKit `NSGlassEffectView` dengan `effectIsInteractive` (macOS 27.0). Ada modifier `glassProminent`. Verified via grep swiftinterface + header. **API-nya ada, tapi tidak dipakai project ini** — `grep NSGlassEffectView|glassProminent|GlassButtonStyle` di `Sources/` = 0 hasil. AppKit biasa, nol SwiftUI.
+- [2026-10-05] **Asset DMG dinamai TANPA versi (`Presentools.dmg`) supaya website tidak pernah stale.** Hardcode `/releases/latest/download/Presentools-<version>.dmg` kelihatannya otomatis, tapi GitHub cuma me-redirect bagian `latest`; filename tetap harus match persis asset name, jadi link mati lagi tiap release. Bukti staleness yang nyata: website masih hardcode `v0.3.0` padahal `v0.4.0` sudah rilis 1 Okt — "BUMP POINT" comment di `index.html` sudah memperingatkan, tapi tidak pernah dijalankan. Volume DMG tetap berisi versi (`Presentools 0.5.0`), jadi user tetap tahu versi apa yang mereka mount.
+- [2026-10-05] **Alasan "Glass API native" yang dipakai mengunci target 27.0 ternyata tidak pernah benar.** Nol Glass call di kode. Yang benar-benar menahan target cuma `SCScreenshotManager.captureImage(in:)` di `ZoomLens.swift` = `macOS 15.2+`. Proven by compile, bukan baca header: target 14.0 gagal tepat 1 baris, 15.2 → 0 error 0 warning. Kesimpulan: buka kunci = 3 baris konfigurasi, nol kode.
 - [2026-09-30] **AppKit `ignoresMouseEvents` cuma `BOOL`, tidak ada parameter `forward`.** Klaim sebelumnya (`{ forward: true }`) itu API **Electron** — salah untuk AppKit. macOS otomatis teruskan event ke window bawah. Verified: `NSWindow.h:795` + run `clickThrough: true`.
 - [2026-09-30] `Timer` subclass **tidak bisa** init dengan closure — `target: nil` / `selector: nil` ditolak compiler. Ganti `DispatchSource.makeTimerSource(queue: .main)` + `MainActor.assumeIsolated`.
 - [2026-09-30] stdout **block-buffered** saat di-redirect ke file → run pertama kelihatan diam padahal jalan. `fflush(stdout)` setelah tiap print, atau run harus lewat terminal.
@@ -92,7 +95,7 @@ Total 780 baris (7 file Swift + 41 baris `bundle.sh`), nol dependency pihak keti
 
 | File | Purpose | Last Changed |
 |------|---------|-------------|
-| `Package.swift` | SwiftPM manifest, target macOS 27.0 | 2026-09-30 |
+| `Package.swift` | SwiftPM manifest, target macOS 15.2 | 2026-10-05 |
 | `Sources/presentools/main.swift` | Entry point: NSApp tray-only, menu bar, effect dispatch, reporting | 2026-09-30 |
 | `Sources/presentools/OverlayWindow.swift` | NSWindow + NSView per display, click-through, all-Spaces | 2026-09-30 |
 | `Sources/presentools/CursorPoller.swift` | DispatchSourceTimer 60Hz, fan-out cursor ke semua overlay | 2026-09-30 |
@@ -100,7 +103,7 @@ Total 780 baris (7 file Swift + 41 baris `bundle.sh`), nol dependency pihak keti
 | `Sources/presentools/ZoomLens.swift` | Jendela magnifier, `captureImage(in:)` 8Hz, koordinat SCK↔AppKit | 2026-09-30 |
 | `Sources/presentools/HotKeyCenter.swift` | Carbon `RegisterEventHotKey` — AppKit tidak punya API global hotkey | 2026-09-30 |
 | `Sources/presentools/SelfTest.swift` | Render headless ke bitmap, cek nilai piksel, exit code | 2026-09-30 |
-| `bundle.sh` | Rakit `.app`: Info.plist (`LSUIElement`, usage description) + ad-hoc codesign | 2026-09-30 |
+| `bundle.sh` | Rakit `.app`: Info.plist (`LSUIElement`, usage description) + ad-hoc codesign | 2026-10-05 |
 | `knowledge/README.md` | Index folder knowledge | 2026-09-30 |
 | `knowledge/KNOWLEDGE.md` | Index ini | 2026-09-30 |
 | `knowledge/history.md` | Timeline append-only | 2026-09-30 |

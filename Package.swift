@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Presentools",
-    platforms: [.macOS("27.0")],
+    platforms: [.macOS("15.2")],
     targets: [
         .executableTarget(
             name: "presentools",

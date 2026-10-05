@@ -8,7 +8,7 @@ Minimal presentation utilities for macOS: Spotlight, Laser Pointer, and Zoom Len
 
 ## Requirements
 
-- macOS 27.0+
+- macOS 15.2+
 - Screen Recording permission, needed only for Zoom Lens
 
 ## Installation

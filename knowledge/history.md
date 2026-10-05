@@ -207,3 +207,17 @@
     Persisted table menang atas `Defaults` — itu perilaku yang BENAR (user override harus menang). Efeknya: app yang baru deploy masih jalan dengan ⌘⌥ untuk laser/zoom/off sampai di-reset.
   - Next: user pilih — biarkan (hammer lama masih jalan), atau reset via menu "Reset to Defaults" untuk mengambil default baru. TIDAK saya hapus diam-diam karena itu menghapus pilihan yang mungkin memang disengaja.
   - Angka modifier: cmdKey=256 (0x100), optionKey=2048 (0x800). cmd+opt=2304. Dipakai buat baca `defaults read` output.
+
+- [2026-10-05] **Decision: deployment target 27.0 → 15.2**
+  - Problem: app terkunci macOS 27 padahal user mau bisa jalan di semua versi macOS
+  - Chosen: floor **15.2**, nol kode Swift berubah
+  - Kenapa 15.2 dan bukan lebih rendah: `SCScreenshotManager.captureImage(in:)` (`ZoomLens.swift:114`) = `API_AVAILABLE(macos(15.2))`. Itu satu-satunya API di seluruh project yang lebih baru dari AppKit dasar.
+  - Alasan lama SALAH: decision 2026-09-30 bilang "Glass API native" sebagaijustifikasi 27.0. `grep NSGlassEffectView|glassProminent|GlassButtonStyle|GlassProminentButtonStyle` di `Sources/` = **0 hasil**. Nol SwiftUI, nol `NSGlassEffectView`. AppKit biasa. Tidak ada yang butuh 27.0.
+  - Dibuktikan dengan compile, bukan asumsi: `.macOS("14.0")` → gagal, 1 error, `'captureImage(in:)' is only available in macOS 15.2 or newer`. `.macOS("15.2")` → **0 error 0 warning**. Jadi 15.2 persis batas bawah yang tidak perlu satu baris fallback pun.
+  - 3 kunci yang diubah: `Package.swift` platform, `bundle.sh` LSMinimumSystemVersion, `homebrew/Presentools.rb` `depends_on macos: :golden_gate` → `:sequoia` (dikonfirmasi dari `MacOSVersion::SYMBOLS` brew lokal: `:sequoia` = 15, `:tahoe` = 26, `:golden_gate` = 27).
+  - Risiko yanguserlz accept: tidak ada satu pun run di15.2/26 — mesin dev cuma27. TCC Screen Recording + SCK capture bisa punya perbedaan perilaku. Klaim support ditulis bersih tanpa catatan, sesuai keputusan user.
+  - Tidak disentuh sengaja: `knowledge/macos-27-overlay.md` (catatan verifikasi SDK 27, bukan deployment target — isinya tetap benar), `history.md` entry lama (append-only; menyunting entri lama = memalsukan riwayat).
+  - Verifikasi: `swift build` 0/0, `./bundle.sh`, `LSMinimumSystemVersion` = 15.2, `otool -l` minos 15.2, `--selftest` PASS exit 0.
+  - Lesson: justifikasi deployment target yang disgusting dari hafalan API akan menahan target lebih lama dari yang perlu. `grep` call yang benar-benar dipakai, lalu `swift build` dengan target yang lebih rendah — 5 menit untuk menghapus belasan baris konfigurasi yang sempat mengunci user.
+
+

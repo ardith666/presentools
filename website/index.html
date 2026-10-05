@@ -208,7 +208,7 @@
     </a>
     <a class="btn btn-s" href="https://github.com/ardith666/presentools/releases">All releases</a>
   </div>
-  <p class="meta">Latest <b>0.3.0</b> · 1.1 MB · ad-hoc signed · requires macOS 27 or later ·
+  <p class="meta">Latest <b>0.3.0</b> · 1.1 MB · ad-hoc signed · requires macOS 15.2 or later ·
     <a href="https://github.com/ardith666/presentools#installation">install notes</a></p>
 
   <div class="stage" aria-hidden="true">
@@ -340,10 +340,11 @@ swift build -c release
       <p>Yes — and that is the point. Presentools is a transparent overlay that sits above
       whatever is on screen, so it works over any app: presentation software, a PDF in Preview,
       a browser deck, a video call. Your deck is not imported, converted, or re-rendered.</p></details>
-    <details class="reveal"><summary>Why macOS 27 and later?</summary>
-      <p>Presentools targets macOS 27 only, with no back-compatibility branches — the window
-      and overlay APIs it needs exist there. That keeps the codebase small instead of carrying
-      availability checks for a dozen older releases.</p></details>
+    <details class="reveal"><summary>Why macOS 15.2 and later?</summary>
+      <p>Zoom Lens grabs one rectangle of the screen at native resolution, and the API that does
+      that — <code>captureImage(in:)</code> — arrived in macOS 15.2. Spotlight and Laser Pointer
+      use nothing newer than the original AppKit, so the whole app builds with no availability
+      checks and no compatibility branches.</p></details>
     <details class="reveal"><summary>Will an update break my Screen Recording permission?</summary>
       <p>No, deliberately. An update downloads the new <code>.dmg</code>, verifies its SHA-256
       against the digest in the release notes, and opens the folder — it never replaces the
