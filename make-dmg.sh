@@ -28,8 +28,24 @@ rm -rf "$STAGE" "$DMG"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 
+# cp -R applies the caller's umask to the modes it creates, so a shell running
+# with umask 077 (common for a build user) silently downgrades a bundle that is
+# already 755 in build/ back to 700 on its way into the DMG. The volume then
+# ships a bundle only its build account can read, and Gatekeeper reports that as
+# "damaged" instead of "unidentified" — with no way for the user to tell the two
+# apart. Normalise here rather than trusting the caller.
+chmod -R a+rX "$STAGE"
+
 # Symlink, bukan folder asli: volume jadi kecil dan drag tetap ke path yang benar.
 ln -s /Applications "$STAGE/Applications"
+
+# Fail loudly instead of shipping a broken download: an unreadable binary inside
+# a read-only volume is invisible at build time and only shows up as a Gatekeeper
+# error on someone else's machine.
+[ -r "$STAGE/Presentools.app/Contents/MacOS/Presentools" ] \
+  || { echo "error: staged binary is not world-readable"; exit 1; }
+[ -x "$STAGE/Presentools.app/Contents/MacOS/Presentools" ] \
+  || { echo "error: staged binary is not executable"; exit 1; }
 
 hdiutil create -volname "$VOL" -srcfolder "$STAGE" -ov -format UDZO -quiet "$DMG"
 rm -rf "$STAGE"
