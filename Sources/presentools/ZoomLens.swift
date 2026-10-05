@@ -47,6 +47,12 @@ final class ZoomLens {
         // above the menu bar and block the status menu.
         window.level = OverlayWindow.overlayLevel
         window.ignoresMouseEvents = true
+        // Without this the lens is part of its own screenshot: captureImage(in:)
+        // returns the lens already on screen, magnified again inside itself — a
+        // circle inside a circle, worst near the screen edge where the capture
+        // rect overlaps the lens window. Excluding the layer from capture is the
+        // documented fix; hiding the window would flicker.
+        window.sharingType = .none
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         window.orderFrontRegardless()
         window.alphaValue = 0
