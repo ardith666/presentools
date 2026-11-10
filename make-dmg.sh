@@ -1,56 +1,93 @@
 #!/bin/bash
-# Rakit Presentools.dmg — drag ke Applications.
+# Rakit Presentools.dmg — drag ke Applications dengan visual layout & background.
 #
-# Standar macOS: volume berisi .app + symlink /Applications. Menyeret .app ke
-# Applications = menyalin app, persis seperti app mana pun di App Store.
-#
-# `hdiutil create -srcfolder` sudah membuat volume read-only dengan sendirinya,
-# jadi tidak perlu AppleScript untuk membuka window Finder atau mengatur layout.
+# Menghasilkan installer DMG modern dengan icon App di kiri, panah drag,
+# dan folder Applications di kanan.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 APP="build/Presentools.app"
-STAGE="build/dmg"
+TEMP_DMG="build/temp.dmg"
+DMG="build/Presentools.dmg"
+BG_IMG="build/dmg-background.png"
 
 [ -d "$APP" ] || { echo "error: run ./bundle.sh first"; exit 1; }
 [ -f build/Presentools.icns ] || { echo "error: no build/Presentools.icns"; exit 1; }
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")"
-# Filename has no version on purpose. The website links to
-# /releases/latest/download/Presentools.dmg, which only resolves if the asset
-# name is version-independent — otherwise every release breaks the download
-# button on the landing page. The version still shows on the mounted volume.
-DMG="build/Presentools.dmg"
 VOL="Presentools ${VERSION}"
 
-rm -rf "$STAGE" "$DMG"
-mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/"
+# 1. Pastikan background DMG sudah digenerate
+swift tools/makedmgbackground.swift "$BG_IMG"
 
-# cp -R applies the caller's umask to the modes it creates, so a shell running
-# with umask 077 (common for a build user) silently downgrades a bundle that is
-# already 755 in build/ back to 700 on its way into the DMG. The volume then
-# ships a bundle only its build account can read, and Gatekeeper reports that as
-# "damaged" instead of "unidentified" — with no way for the user to tell the two
-# apart. Normalise here rather than trusting the caller.
-chmod -R a+rX "$STAGE"
+rm -f "$TEMP_DMG" "$DMG"
 
-# Symlink, bukan folder asli: volume jadi kecil dan drag tetap ke path yang benar.
-ln -s /Applications "$STAGE/Applications"
+# 2. Buat read-write disk image sementara (~30MB)
+hdiutil create -size 30m -fs HFS+ -volname "$VOL" -ov "$TEMP_DMG" >/dev/null
 
-# Fail loudly instead of shipping a broken download: an unreadable binary inside
-# a read-only volume is invisible at build time and only shows up as a Gatekeeper
-# error on someone else's machine.
-[ -r "$STAGE/Presentools.app/Contents/MacOS/Presentools" ] \
-  || { echo "error: staged binary is not world-readable"; exit 1; }
-[ -x "$STAGE/Presentools.app/Contents/MacOS/Presentools" ] \
-  || { echo "error: staged binary is not executable"; exit 1; }
+# 3. Mount disk image
+MOUNT_INFO=$(hdiutil attach -readwrite -noverify -noautoopen "$TEMP_DMG")
+DEV_NAME=$(echo "$MOUNT_INFO" | head -n 1 | awk '{print $1}')
+MOUNT_DIR=$(echo "$MOUNT_INFO" | grep "/Volumes/${VOL}" | sed 's/.*\/Volumes\//\/Volumes\//')
 
-hdiutil create -volname "$VOL" -srcfolder "$STAGE" -ov -format UDZO -quiet "$DMG"
-rm -rf "$STAGE"
+echo "Mounted $DEV_NAME at $MOUNT_DIR"
 
-# Volume harus bisa dibaca ulang;DMG rusak lebih buruk daripada tidak ada.
+cleanup() {
+  if [ -n "${MOUNT_DIR:-}" ] && [ -d "$MOUNT_DIR" ]; then
+    hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+  fi
+  rm -f "$TEMP_DMG"
+}
+trap cleanup EXIT
+
+# 4. Salin .app dan buat symlink /Applications
+cp -R "$APP" "$MOUNT_DIR/"
+ln -s /Applications "$MOUNT_DIR/Applications"
+
+# 5. Salin gambar background
+mkdir -p "$MOUNT_DIR/.background"
+cp "$BG_IMG" "$MOUNT_DIR/.background/background.png"
+
+# Pastikan permission world-readable
+chmod -R a+rX "$MOUNT_DIR"
+
+# 6. Tata layout Finder dengan AppleScript
+osascript <<APPLESCRIPT
+tell application "Finder"
+  tell disk "${VOL}"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {400, 100, 940, 480}
+    set theViewOptions to the icon view options of container window
+    set arrangement of theViewOptions to not arranged
+    set icon size of theViewOptions to 110
+    set background picture of theViewOptions to file ".background:background.png"
+    set position of item "Presentools.app" of container window to {130, 200}
+    set position of item "Applications" of container window to {410, 200}
+    close
+    open
+    update without registering applications
+    delay 1
+  end tell
+end tell
+APPLESCRIPT
+
+# Sync disk cache
+sync || true
+sleep 1
+
+# 7. Unmount image
+hdiutil detach "$MOUNT_DIR"
+MOUNT_DIR=""
+
+# 8. Convert ke compressed read-only DMG (UDZO)
+hdiutil convert "$TEMP_DMG" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null
+rm -f "$TEMP_DMG"
+
+# 9. Verify DMG
 hdiutil verify "$DMG" >/dev/null 2>&1 || { echo "error: dmg failed verify"; exit 1; }
 
 echo "built $DMG ($(du -h "$DMG" | cut -f1))"

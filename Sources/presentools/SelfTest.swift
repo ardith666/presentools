@@ -44,8 +44,9 @@ enum SelfTest {
         let login = checkLaunchAtLoginMapping()
         let newSettings = checkNewSettingsDefaults()
         let sliders = checkSliderSpecs()
+        let webRemote = checkWebRemote()
 
-        let ok = spotlight && edge && laser && offSurface && colors && defaults && gestures && hotkeys && callback && persist && conflicts && glyphs && clicks && version && updates && login && newSettings && sliders
+        let ok = spotlight && edge && laser && offSurface && colors && defaults && gestures && hotkeys && callback && persist && conflicts && glyphs && clicks && version && updates && login && newSettings && sliders && webRemote
         print(ok ? "selftest: PASS" : "selftest: FAIL")
         return ok
     }
@@ -918,5 +919,35 @@ enum SelfTest {
         let centreLum = lum(p, centre, centre, w)
         print("  edge: offSurfaceCentre=\(Int(centreLum)) (want <60, no crash)")
         return centreLum < 60
+    }
+
+    /// Verifikasi asset web remote, mapping tombol slide, dan generator QR Code
+    private static func checkWebRemote() -> Bool {
+        var ok = true
+
+        // 1. Validasi WebRemoteUI HTML
+        let html = WebRemoteUI.html
+        let hasSlideNav = html.contains("triggerSlide('next')") && html.contains("triggerSlide('prev')") && html.contains("triggerSlide('blank')")
+        let hasEffects = html.contains("setEffect('spotlight')") && html.contains("setEffect('laser')") && html.contains("setEffect('zoom')")
+        print("  webRemote UI assets: \(hasSlideNav && hasEffects ? "ok" : "BAD")")
+        if !hasSlideNav || !hasEffects { ok = false }
+
+        // 2. Validasi Keycode Action Slide
+        let nextCode = SlideAction.next.keyCode == 124
+        let prevCode = SlideAction.prev.keyCode == 123
+        let blankCode = SlideAction.blank.keyCode == 11
+        let escapeCode = SlideAction.escape.keyCode == 53
+        let keyCodesOK = nextCode && prevCode && blankCode && escapeCode
+        print("  slide keycodes: \(keyCodesOK ? "ok" : "BAD (mismatched virtual keycode)")")
+        if !keyCodesOK { ok = false }
+
+        // 3. Validasi QR Code generator & URL parsing
+        let window = RemoteControlWindow(port: 8765)
+        let url = window.serverURL
+        let validURL = url.hasPrefix("http://") && url.hasSuffix(":8765")
+        print("  remote URL format (\(url)): \(validURL ? "ok" : "BAD")")
+        if !validURL { ok = false }
+
+        return ok
     }
 }

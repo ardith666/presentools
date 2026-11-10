@@ -34,6 +34,8 @@ final class Presentools: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindow?
     private var lens: ZoomLens?
     private var statusItem: NSStatusItem?
+    private var remoteServer: NetworkServer?
+    private var remoteWindow: RemoteControlWindow?
 
     private(set) var effect: Effect = .none
     /// The display the cursor is on. Effects are drawn only there; a second
@@ -70,6 +72,26 @@ final class Presentools: NSObject, NSApplicationDelegate {
         // "Something got registered", not "all of it did": a combination another
         // app owns is a per-binding failure, and the rest still work.
         let registered = registration.values.contains(true)
+
+        // Web Remote Control Server
+        let server = NetworkServer(port: NetworkServer.defaultPort)
+        server.getEffect = { [weak self] in
+            DispatchQueue.main.sync {
+                self?.effect ?? .none
+            }
+        }
+        server.onSetEffect = { [weak self] next in
+            DispatchQueue.main.async {
+                self?.set(next)
+            }
+        }
+        server.onSlideAction = { action in
+            DispatchQueue.main.async {
+                SlideController.shared.trigger(action)
+            }
+        }
+        server.start()
+        remoteServer = server
 
         setUpStatusItem()
         if menuTestMode {
@@ -148,6 +170,11 @@ final class Presentools: NSObject, NSApplicationDelegate {
         )
         shortcuts.target = self
         menu.addItem(shortcuts)
+        let webRemote = NSMenuItem(
+            title: "Web Remote…", action: #selector(openWebRemote(_:)), keyEquivalent: ""
+        )
+        webRemote.target = self
+        menu.addItem(webRemote)
         menu.addItem(.separator())
         addSettings(to: menu)
         menu.addItem(.separator())
@@ -218,6 +245,13 @@ final class Presentools: NSObject, NSApplicationDelegate {
             )
         }
         settingsWindow?.show()
+    }
+
+    @objc private func openWebRemote(_ sender: Any?) {
+        if remoteWindow == nil {
+            remoteWindow = RemoteControlWindow(port: NetworkServer.defaultPort)
+        }
+        remoteWindow?.show()
     }
 
     @objc private func resetSettings(_ sender: Any?) {
@@ -462,6 +496,7 @@ final class Presentools: NSObject, NSApplicationDelegate {
     }
 
     private func probeShareableContent() {
+        guard lens?.permissionGranted == true else { return }
         Task {
             do {
                 let content = try await SCShareableContent.excludingDesktopWindows(

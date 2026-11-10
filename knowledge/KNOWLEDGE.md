@@ -44,6 +44,7 @@ Konsekuensi yang disengaja: kalau user deny Screen Recording, **2 dari 3 fitur t
 | 2026-10-05 | Deployment target **15.2** | `SCScreenshotManager.captureImage(in:)` debut 15.2 dan itu satu-satunya API yang neuer. Floor 15.2 → 0 baris `#available`, 0 fallback | Floor 14.0 (butuh capture path alternatif ~40 baris); tetap 27.0 |
 | 2026-09-30 | Build = SwiftPM + script rakit `.app` | `xcodegen`/`tuist`/`swiftformat` tidak ada di mesin ini. Nol install baru | Hand-write `.xcodeproj`; `brew install xcodegen` |
 | 2026-09-30 | Project di `<webroot>/lab/presentools` | Ada precedent non-PHP di `lab/` (`docker`, `f-license`). SwiftPM binary tidak butuh nginx | `~/code/presentools` |
+| 2026-11-10 | Web Remote Control via Wi-Fi (Unit 7–11) | User butuh remote smartphone untuk navigasi slide (Next/Prev) + ganti efek Presentools tanpa beli alat fisik (Logitech Spotlight). Server native `Network.framework` nol dependency | Companion app iOS/Android native (butuh 2 repo terpisah); WebSocket third-party library; Cloud relay |
 
 ## Progress
 
@@ -55,6 +56,11 @@ Semua unit selesai. `--selftest` PASS, zoom terbukti capture.
 - [x] **Unit 4** — laser: persistent dot (`Effect.swift`)
 - [x] **Unit 5** — zoom lens: SCK capture 8Hz + magnify window (`ZoomLens.swift`)
 - [x] **Unit 6** — `.app` terbundle 188KB, ad-hoc signed, tray-only, 4 global hotkey
+- [x] **Unit 7** — IP Discovery & Slide Key Simulator (`SlideController.swift` via `CGEvent`)
+- [x] **Unit 8** — Embedded HTTP Network Server (`NetworkServer.swift` via `NWListener`)
+- [x] **Unit 9** — Web Remote UI (`WebRemoteUI.swift`, mobile-first touch interface)
+- [x] **Unit 10** — QR Code Generator & Window Panel (`RemoteControlWindow.swift` via `CIFilter`)
+- [x] **Unit 11** — Self-test & Bundle Integration (`SelfTest.swift` & `bundle.sh`)
 
 **Bukti (run nyata, bukan baca kode):**
 
@@ -104,6 +110,11 @@ Total 780 baris (7 file Swift + 41 baris `bundle.sh`), nol dependency pihak keti
 | `Sources/presentools/HotKeyCenter.swift` | Carbon `RegisterEventHotKey` — AppKit tidak punya API global hotkey | 2026-09-30 |
 | `Sources/presentools/SelfTest.swift` | Render headless ke bitmap, cek nilai piksel, exit code | 2026-09-30 |
 | `bundle.sh` | Rakit `.app`: Info.plist (`LSUIElement`, usage description) + ad-hoc codesign | 2026-10-05 |
+| `knowledge/prd-web-remote.md` | PRD fitur Web Remote Control smartphone Wi-Fi | 2026-11-10 |
+| `Sources/presentools/SlideController.swift` | Navigasi slide Keynote/PPT via `CGEvent` & AX check | 2026-11-10 |
+| `Sources/presentools/NetworkServer.swift` | HTTP server lokal port 8765 via `Network.framework` | 2026-11-10 |
+| `Sources/presentools/WebRemoteUI.swift` | Single-file responsive web UI untuk smartphone | 2026-11-10 |
+| `Sources/presentools/RemoteControlWindow.swift` | QR code pop-up panel via `CIFilter` | 2026-11-10 |
 | `knowledge/README.md` | Index folder knowledge | 2026-09-30 |
 | `knowledge/KNOWLEDGE.md` | Index ini | 2026-09-30 |
 | `knowledge/history.md` | Timeline append-only | 2026-09-30 |

@@ -31,7 +31,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key>                <string>Presentools</string>
   <key>CFBundleExecutable</key>          <string>Presentools</string>
   <key>CFBundlePackageType</key>         <string>APPL</string>
-  <key>CFBundleShortVersionString</key>  <string>0.5.2</string>
+  <key>CFBundleShortVersionString</key>  <string>0.6.0</string>
   <key>CFBundleVersion</key>             <string>1</string>
   <key>LSMinimumSystemVersion</key>      <string>15.2</string>
   <key>LSUIElement</key>                 <true/>
@@ -50,9 +50,9 @@ PLIST
 chmod -R a+rX "$APP"
 [ -f build/Presentools.icns ] && chmod 644 build/Presentools.icns
 
-# Ad-hoc sign: unsigned bundles get killed by TCC, so the Screen Recording
-# grant would never survive a relaunch.
-codesign --force --deep --sign - "$APP" 2>/dev/null || echo "warn: ad-hoc codesign failed"
+# Ad-hoc sign dengan designated requirement berbasis Bundle Identifier agar
+# izin TCC (Screen Recording, Accessibility) tidak hilang setiap kali app di-update.
+codesign --force --deep --sign - -r='designated => identifier "id.my.digitechnesia.presentools"' "$APP" 2>/dev/null || echo "warn: ad-hoc codesign failed"
 
 # Verify rather than trust: a signature that fails --strict here means a broken
 # download for every user, and only Gatekeeper's first launch would show it.

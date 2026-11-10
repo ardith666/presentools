@@ -8,6 +8,7 @@ Project: native macOS overlay tool yang meniru 3 efek Logitech Spotlight
 | File | Isi |
 |---|---|
 | [[KNOWLEDGE]] | Vision, Architecture, Decisions, Progress, Files, Next |
+| [[prd-web-remote]] | PRD Web Remote Control (Smartphone / Wi-Fi companion) |
 | [[macos-27-overlay]] | Gotcha overlay macOS + API yang sudah diverifikasi di SDK 27 |
 | [[research/logitech-spotlight]] | Sumber device acuan (fitur BELUM terverifikasi) |
 | [[history]] | Timeline operasi, append-only |

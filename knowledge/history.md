@@ -220,4 +220,26 @@
   - Verifikasi: `swift build` 0/0, `./bundle.sh`, `LSMinimumSystemVersion` = 15.2, `otool -l` minos 15.2, `--selftest` PASS exit 0.
   - Lesson: justifikasi deployment target yang disgusting dari hafalan API akan menahan target lebih lama dari yang perlu. `grep` call yang benar-benar dipakai, lalu `swift build` dengan target yang lebih rendah — 5 menit untuk menghapus belasan baris konfigurasi yang sempat mengunci user.
 
+- [2026-11-10 21:05] **Decision & PRD: Web Remote Control via Wi-Fi (Unit 7–11)**
+  - Problem: Presenter terkunci di samping laptop untuk menekan tombol hotkey `⌥0..3` atau klik mouse. Butuh remote smartphone ala Logitech Spotlight di jaringan Wi-Fi lokal untuk navigasi slide (Next/Previous/Blank) dan kontrol efek Presentools.
+  - Methodology: dev-meth v3.2. PRD lengkap dibuat di `knowledge/prd-web-remote.md`.
+  - Architecture:
+    1. Embedded HTTP server menggunakan native `Network.framework` (`NWListener` port 8765), nol library eksternal.
+    2. Deteksi IP lokal Wi-Fi (`getifaddrs` POSIX).
+    3. QR code generator native macOS (`CIFilter(name: "CIQRCodeGenerator")`) via pop-up menu bar `RemoteControlWindow`.
+    4. Mobile web client mandiri (touch & haptic-optimized PWA layout, dark slate theme).
+    5. Slide key simulation via `CGEvent` (Right/Left Arrow & 'B' key), lengkap dengan Accessibility permission verification (`AXIsProcessTrusted`).
+  - Next: Implementasi Unit 7 (IP Discovery & Slide Key Simulator) & Unit 8 (HTTP Server).
+
+- [2026-11-10 21:40] **Unit 7–11: Eksekusi Web Remote Control Selesai & Terverifikasi**
+  - Code: 4 file baru (`SlideController.swift`, `NetworkServer.swift`, `WebRemoteUI.swift`, `RemoteControlWindow.swift`), integrasi `main.swift`, pengujian di `SelfTest.swift`.
+  - Zero-dependency: tetap 0 dependensi eksternal (murni Network, CoreGraphics, CoreImage, AppKit).
+  - Status: ✅
+    - `swift build`: 0 error, 0 warning
+    - `./bundle.sh release`: built `build/Presentools.app` (1.3MB)
+    - `--selftest`: PASS (exit 0) — webRemote UI assets ok, slide keycodes ok, remote URL format (http://192.168.3.6:8765) ok.
+  - Bukti live: port 8765 melayani interface touch-friendly dengan haptic feedback dan sync efek dua arah. Menu "Web Remote…" muncul di menu bar menampilkan QR Code dan tombol copy link.
+
+
+
 
