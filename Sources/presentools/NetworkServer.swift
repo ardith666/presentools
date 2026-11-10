@@ -181,6 +181,24 @@ final class NetworkServer: @unchecked Sendable {
             return
         }
 
+        if method == "POST" && path == "/api/mouse" {
+            if let obj = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+                if let action = obj["action"] as? String {
+                    if action == "click" {
+                        SlideController.shared.clickMouse()
+                    } else if action == "rightClick" {
+                        SlideController.shared.rightClickMouse()
+                    }
+                } else if let dx = (obj["dx"] as? NSNumber)?.doubleValue,
+                          let dy = (obj["dy"] as? NSNumber)?.doubleValue {
+                    SlideController.shared.moveMouse(dx: CGFloat(dx), dy: CGFloat(dy))
+                }
+            }
+            let response = #"{"ok":true}"#
+            sendResponse(connection: connection, status: "200 OK", contentType: "application/json", body: Data(response.utf8))
+            return
+        }
+
         sendResponse(connection: connection, status: "404 Not Found", body: Data("Not Found".utf8))
     }
 

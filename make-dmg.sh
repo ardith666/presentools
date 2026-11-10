@@ -1,8 +1,6 @@
 #!/bin/bash
-# Rakit Presentools.dmg — drag ke Applications dengan visual layout & background.
-#
-# Menghasilkan installer DMG modern dengan icon App di kiri, panah drag,
-# dan folder Applications di kanan.
+# Rakit Presentools.dmg — drag ke Applications dengan visual layout, background,
+# dan 1-click update script.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -45,14 +43,42 @@ trap cleanup EXIT
 cp -R "$APP" "$MOUNT_DIR/"
 ln -s /Applications "$MOUNT_DIR/Applications"
 
-# 5. Salin gambar background
+# 5. Buat 1-click installer script jika user kesulitan men-drag saat app sedang running
+cat > "$MOUNT_DIR/Install or Update.command" <<'INSTALLER'
+#!/bin/bash
+clear
+echo "=================================================="
+echo "          Presentools Installer & Updater         "
+echo "=================================================="
+echo ""
+echo "Menghentikan Presentools lama jika sedang berjalan..."
+pkill -x Presentools 2>/dev/null || true
+sleep 1
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "Menyalin Presentools.app ke /Applications..."
+rm -rf /Applications/Presentools.app
+cp -R "$DIR/Presentools.app" /Applications/
+xattr -dr com.apple.quarantine /Applications/Presentools.app 2>/dev/null || true
+
+echo ""
+echo "✅ Instalasi / Update berhasil!"
+echo "Membuka Presentools..."
+open /Applications/Presentools.app
+sleep 1
+echo "Jendela ini boleh ditutup."
+INSTALLER
+chmod +x "$MOUNT_DIR/Install or Update.command"
+
+# 6. Salin gambar background
 mkdir -p "$MOUNT_DIR/.background"
 cp "$BG_IMG" "$MOUNT_DIR/.background/background.png"
 
-# Pastikan permission world-readable
+# Pastikan permission world-readable dan bersihkan xattr kotor
 chmod -R a+rX "$MOUNT_DIR"
+xattr -c "$MOUNT_DIR/Applications" 2>/dev/null || true
 
-# 6. Tata layout Finder dengan AppleScript
+# 7. Tata layout Finder dengan AppleScript
 osascript <<APPLESCRIPT
 tell application "Finder"
   tell disk "${VOL}"
@@ -60,13 +86,14 @@ tell application "Finder"
     set current view of container window to icon view
     set toolbar visible of container window to false
     set statusbar visible of container window to false
-    set the bounds of container window to {400, 100, 940, 480}
+    set the bounds of container window to {350, 100, 930, 520}
     set theViewOptions to the icon view options of container window
     set arrangement of theViewOptions to not arranged
-    set icon size of theViewOptions to 110
+    set icon size of theViewOptions to 104
     set background picture of theViewOptions to file ".background:background.png"
-    set position of item "Presentools.app" of container window to {130, 200}
-    set position of item "Applications" of container window to {410, 200}
+    set position of item "Presentools.app" of container window to {130, 180}
+    set position of item "Applications" of container window to {410, 180}
+    set position of item "Install or Update.command" of container window to {270, 310}
     close
     open
     update without registering applications
@@ -79,15 +106,15 @@ APPLESCRIPT
 sync || true
 sleep 1
 
-# 7. Unmount image
+# 8. Unmount image
 hdiutil detach "$MOUNT_DIR"
 MOUNT_DIR=""
 
-# 8. Convert ke compressed read-only DMG (UDZO)
+# 9. Convert ke compressed read-only DMG (UDZO)
 hdiutil convert "$TEMP_DMG" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null
 rm -f "$TEMP_DMG"
 
-# 9. Verify DMG
+# 10. Verify DMG
 hdiutil verify "$DMG" >/dev/null 2>&1 || { echo "error: dmg failed verify"; exit 1; }
 
 echo "built $DMG ($(du -h "$DMG" | cut -f1))"

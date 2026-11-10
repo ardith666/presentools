@@ -42,18 +42,19 @@ enum WebRemoteUI {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 16px;
+          padding: 12px;
+          overflow-x: hidden;
         }
         header {
           width: 100%;
-          max-width: 420px;
+          max-width: 440px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 4px 16px;
+          padding: 4px 4px 12px;
         }
         .brand {
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 700;
           letter-spacing: -0.5px;
           display: flex;
@@ -82,13 +83,48 @@ enum WebRemoteUI {
           background: var(--active-green);
           box-shadow: 0 0 8px var(--active-green);
         }
+        .nav-tabs {
+          width: 100%;
+          max-width: 440px;
+          display: flex;
+          background: var(--bg-card);
+          padding: 4px;
+          border-radius: 14px;
+          border: 1px solid var(--border);
+          margin-bottom: 14px;
+        }
+        .nav-tab {
+          flex: 1;
+          padding: 8px 0;
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-align: center;
+          color: var(--text-dim);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .nav-tab.active {
+          background: #252b3b;
+          color: #fff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
         main {
           width: 100%;
-          max-width: 420px;
+          max-width: 440px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
           flex: 1;
+        }
+        .tab-content {
+          display: none;
+          flex-direction: column;
+          gap: 16px;
+          width: 100%;
+        }
+        .tab-content.active {
+          display: flex;
         }
         .section-title {
           font-size: 0.75rem;
@@ -101,21 +137,21 @@ enum WebRemoteUI {
         .card {
           background: var(--bg-card);
           border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 16px;
+          border-radius: 18px;
+          padding: 14px;
         }
         .slide-zone {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          gap: 10px;
         }
         .btn-large {
           grid-column: span 2;
-          height: 110px;
+          height: 100px;
           background: linear-gradient(145deg, #1e293b, #0f172a);
           border: 1px solid #334155;
           border-radius: 16px;
-          font-size: 1.35rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: #fff;
           display: flex;
@@ -133,11 +169,11 @@ enum WebRemoteUI {
           border-color: var(--primary);
         }
         .btn-secondary {
-          height: 76px;
+          height: 72px;
           background: var(--bg-button);
           border: 1px solid var(--border);
           border-radius: 14px;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 600;
           color: var(--text-main);
           display: flex;
@@ -157,7 +193,7 @@ enum WebRemoteUI {
           gap: 10px;
         }
         .btn-effect {
-          height: 80px;
+          height: 76px;
           background: var(--bg-button);
           border: 1px solid var(--border);
           border-radius: 14px;
@@ -166,14 +202,14 @@ enum WebRemoteUI {
           align-items: center;
           justify-content: center;
           gap: 6px;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           font-weight: 600;
           color: var(--text-dim);
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .btn-effect span.icon {
-          font-size: 1.4rem;
+          font-size: 1.3rem;
         }
         .btn-effect:active {
           transform: scale(0.96);
@@ -201,6 +237,84 @@ enum WebRemoteUI {
           color: #38bdf8;
           border-color: var(--active-zoom);
           box-shadow: 0 0 16px var(--zoom-glow);
+        }
+        /* Trackpad & Air Mouse Styles */
+        .touchpad-box {
+          height: 280px;
+          background: radial-gradient(circle at center, #1b202d, #11141c);
+          border: 1.5px dashed #334155;
+          border-radius: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          touch-action: none;
+          cursor: crosshair;
+        }
+        .touchpad-box:active {
+          border-color: var(--primary);
+        }
+        .touchpad-hint {
+          font-size: 0.85rem;
+          color: #64748b;
+          pointer-events: none;
+          text-align: center;
+          padding: 0 20px;
+        }
+        .mouse-buttons {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: 10px;
+        }
+        .btn-mouse {
+          height: 60px;
+          background: var(--bg-button);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text-main);
+          cursor: pointer;
+        }
+        .btn-mouse:active {
+          background: #334155;
+        }
+        .airmouse-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #1a202c;
+          padding: 10px 14px;
+          border-radius: 12px;
+          border: 1px solid #2d3748;
+          margin-bottom: 10px;
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+        .airmouse-hold-btn {
+          width: 100%;
+          height: 120px;
+          background: linear-gradient(135deg, #0284c7, #0369a1);
+          color: #fff;
+          font-size: 1.15rem;
+          font-weight: 700;
+          border: none;
+          border-radius: 18px;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 8px;
+          box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4);
+          cursor: pointer;
+          touch-action: none;
+        }
+        .airmouse-hold-btn:active, .airmouse-hold-btn.holding {
+          background: linear-gradient(135deg, #38bdf8, #0284c7);
+          box-shadow: 0 0 24px rgba(56, 189, 248, 0.7);
+          transform: scale(0.98);
         }
         .toast {
           position: fixed;
@@ -237,42 +351,79 @@ enum WebRemoteUI {
         </div>
       </header>
 
+      <div class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('remote')">Slide & Effects</div>
+        <div class="nav-tab" onclick="switchTab('mouse')">Trackpad & Air Mouse</div>
+      </div>
+
       <main>
-        <div>
-          <div class="section-title">Slide Navigation (Spotlight Clicker)</div>
-          <div class="card slide-zone">
-            <button class="btn-large" id="btnNext" onclick="triggerSlide('next')">
-              <span>NEXT ➔</span>
-              <small style="font-size:0.75rem; font-weight:normal; color:var(--text-dim)">Next Slide</small>
-            </button>
-            <button class="btn-secondary" id="btnPrev" onclick="triggerSlide('prev')">
-              <span>⬅ PREV</span>
-            </button>
-            <button class="btn-secondary" id="btnBlank" onclick="triggerSlide('blank')">
-              <span>⬛ BLANK</span>
-            </button>
+        <!-- Tab 1: Remote & Effects -->
+        <div class="tab-content active" id="tabRemote">
+          <div>
+            <div class="section-title">Slide Navigation (Clicker)</div>
+            <div class="card slide-zone">
+              <button class="btn-large" id="btnNext" onclick="triggerSlide('next')">
+                <span>NEXT ➔</span>
+                <small style="font-size:0.75rem; font-weight:normal; color:var(--text-dim)">Next Slide</small>
+              </button>
+              <button class="btn-secondary" id="btnPrev" onclick="triggerSlide('prev')">
+                <span>⬅ PREV</span>
+              </button>
+              <button class="btn-secondary" id="btnBlank" onclick="triggerSlide('blank')">
+                <span>⬛ BLANK</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Presentools Effects</div>
+            <div class="card effects-grid">
+              <button class="btn-effect" id="effNone" onclick="setEffect('none')">
+                <span class="icon">⏹️</span>
+                <span>All Off</span>
+              </button>
+              <button class="btn-effect" id="effSpotlight" onclick="setEffect('spotlight')">
+                <span class="icon">🔦</span>
+                <span>Spotlight</span>
+              </button>
+              <button class="btn-effect" id="effLaser" onclick="setEffect('laser')">
+                <span class="icon">🔴</span>
+                <span>Laser</span>
+              </button>
+              <button class="btn-effect" id="effZoom" onclick="setEffect('zoom')">
+                <span class="icon">🔍</span>
+                <span>Zoom Lens</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div>
-          <div class="section-title">Presentools Effects</div>
-          <div class="card effects-grid">
-            <button class="btn-effect" id="effNone" onclick="setEffect('none')">
-              <span class="icon">⏹️</span>
-              <span>All Off</span>
-            </button>
-            <button class="btn-effect" id="effSpotlight" onclick="setEffect('spotlight')">
-              <span class="icon">🔦</span>
-              <span>Spotlight</span>
-            </button>
-            <button class="btn-effect" id="effLaser" onclick="setEffect('laser')">
-              <span class="icon">🔴</span>
-              <span>Laser</span>
-            </button>
-            <button class="btn-effect" id="effZoom" onclick="setEffect('zoom')">
-              <span class="icon">🔍</span>
-              <span>Zoom Lens</span>
-            </button>
+        <!-- Tab 2: Trackpad & Air Mouse -->
+        <div class="tab-content" id="tabMouse">
+          <div class="airmouse-toggle">
+            <span>Air Mouse Gyroscope</span>
+            <input type="checkbox" id="gyroToggle" onchange="toggleGyro(this.checked)" style="transform:scale(1.3); cursor:pointer;">
+          </div>
+
+          <!-- Tombol Hold Saat Gyro Aktif -->
+          <button class="airmouse-hold-btn" id="airMouseHoldBtn">
+            <span>🎯 TAHAN UNTUK GERAKKAN</span>
+            <small style="font-size:0.8rem; font-weight:normal; opacity:0.85">Arahkan HP ke layar Mac</small>
+          </button>
+
+          <!-- Area Touchpad Standar -->
+          <div class="card" id="touchpadContainer">
+            <div class="touchpad-box" id="touchpad">
+              <div class="touchpad-hint">
+                🖱️ <b>Touchpad Area</b><br>
+                Geser untuk menggerakkan kursor.<br>
+                Ketuk (tap) untuk klik.
+              </div>
+            </div>
+            <div class="mouse-buttons">
+              <button class="btn-mouse" onclick="sendMouseClick('click')">Left Click</button>
+              <button class="btn-mouse" onclick="sendMouseClick('rightClick')">Right Click</button>
+            </div>
           </div>
         </div>
       </main>
@@ -282,9 +433,9 @@ enum WebRemoteUI {
       <script>
         let currentEffect = 'none';
 
-        function vibrate() {
+        function vibrate(ms = 30) {
           if (navigator.vibrate) {
-            navigator.vibrate(30);
+            navigator.vibrate(ms);
           }
         }
 
@@ -293,6 +444,15 @@ enum WebRemoteUI {
           t.textContent = msg;
           t.classList.add('show');
           setTimeout(() => t.classList.remove('show'), 3500);
+        }
+
+        function switchTab(name) {
+          vibrate(20);
+          document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+            tab.classList.toggle('active', (name === 'remote' && i === 0) || (name === 'mouse' && i === 1));
+          });
+          document.getElementById('tabRemote').classList.toggle('active', name === 'remote');
+          document.getElementById('tabMouse').classList.toggle('active', name === 'mouse');
         }
 
         function updateEffectUI(effect) {
@@ -356,8 +516,161 @@ enum WebRemoteUI {
           }
         }
 
-        setInterval(pollStatus, 1500);
+        setInterval(pollStatus, 2000);
         pollStatus();
+
+        /* --- Touchpad Logic --- */
+        const pad = document.getElementById('touchpad');
+        let touchStartX = 0, touchStartY = 0;
+        let lastX = 0, lastY = 0;
+        let touchStartTime = 0;
+        let pendingDX = 0, pendingDY = 0;
+        let sendTimer = null;
+
+        function flushMouseMove() {
+          if (pendingDX !== 0 || pendingDY !== 0) {
+            const dx = pendingDX;
+            const dy = pendingDY;
+            pendingDX = 0;
+            pendingDY = 0;
+            fetch('/api/mouse', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dx: dx, dy: dy })
+            }).catch(() => {});
+          }
+          sendTimer = null;
+        }
+
+        function queueMouseMove(dx, dy) {
+          pendingDX += dx;
+          pendingDY += dy;
+          if (!sendTimer) {
+            sendTimer = setTimeout(flushMouseMove, 16); // ~60Hz
+          }
+        }
+
+        pad.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            const t = e.touches[0];
+            touchStartX = t.clientX;
+            touchStartY = t.clientY;
+            lastX = t.clientX;
+            lastY = t.clientY;
+            touchStartTime = Date.now();
+          }
+        }, { passive: true });
+
+        pad.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 1) {
+            const t = e.touches[0];
+            const dx = (t.clientX - lastX) * 1.6;
+            const dy = (t.clientY - lastY) * 1.6;
+            lastX = t.clientX;
+            lastY = t.clientY;
+            queueMouseMove(dx, dy);
+          }
+        }, { passive: true });
+
+        pad.addEventListener('touchend', (e) => {
+          const duration = Date.now() - touchStartTime;
+          const moved = Math.hypot(lastX - touchStartX, lastY - touchStartY);
+          if (duration < 220 && moved < 8) {
+            // Tap detected -> Left Click
+            vibrate(25);
+            sendMouseClick('click');
+          }
+        });
+
+        async function sendMouseClick(action) {
+          vibrate(30);
+          try {
+            await fetch('/api/mouse', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: action })
+            });
+          } catch (e) {}
+        }
+
+        /* --- Air Mouse (Gyroscope) Logic --- */
+        let gyroActive = false;
+        let isHoldingAirMouse = false;
+        let lastGamma = null, lastBeta = null;
+        const holdBtn = document.getElementById('airMouseHoldBtn');
+        const padBox = document.getElementById('touchpadContainer');
+
+        async function toggleGyro(enabled) {
+          if (enabled) {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+              try {
+                const perm = await DeviceOrientationEvent.requestPermission();
+                if (perm !== 'granted') {
+                  showToast("Izin sensor gyro ditolak");
+                  document.getElementById('gyroToggle').checked = false;
+                  return;
+                }
+              } catch (err) {
+                showToast("Gagal meminta izin gyro: " + err);
+                document.getElementById('gyroToggle').checked = false;
+                return;
+              }
+            }
+            gyroActive = true;
+            holdBtn.style.display = 'flex';
+            padBox.style.display = 'none';
+            window.addEventListener('deviceorientation', handleOrientation);
+          } else {
+            gyroActive = false;
+            holdBtn.style.display = 'none';
+            padBox.style.display = 'block';
+            window.removeEventListener('deviceorientation', handleOrientation);
+          }
+        }
+
+        function handleOrientation(e) {
+          if (!gyroActive || !isHoldingAirMouse) {
+            lastGamma = null;
+            lastBeta = null;
+            return;
+          }
+          if (lastGamma === null || lastBeta === null) {
+            lastGamma = e.gamma;
+            lastBeta = e.beta;
+            return;
+          }
+          const dGamma = e.gamma - lastGamma;
+          const dBeta = e.beta - lastBeta;
+          lastGamma = e.gamma;
+          lastBeta = e.beta;
+
+          // Sensitivitas gerak gyro
+          const dx = dGamma * 12;
+          const dy = dBeta * 12;
+          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            queueMouseMove(dx, dy);
+          }
+        }
+
+        function startHold(e) {
+          e.preventDefault();
+          isHoldingAirMouse = true;
+          holdBtn.classList.add('holding');
+          vibrate(40);
+        }
+
+        function endHold(e) {
+          e.preventDefault();
+          isHoldingAirMouse = false;
+          holdBtn.classList.remove('holding');
+          lastGamma = null;
+          lastBeta = null;
+        }
+
+        holdBtn.addEventListener('touchstart', startHold);
+        holdBtn.addEventListener('touchend', endHold);
+        holdBtn.addEventListener('mousedown', startHold);
+        holdBtn.addEventListener('mouseup', endHold);
       </script>
     </body>
     </html>

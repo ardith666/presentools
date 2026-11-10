@@ -46,6 +46,48 @@ final class SlideController: Sendable {
         return true
     }
 
+    /// Menggeser kursor mouse dengan delta (dx, dy)
+    @discardableResult
+    func moveMouse(dx: CGFloat, dy: CGFloat) -> Bool {
+        guard let currentEvent = CGEvent(source: nil) else { return false }
+        let currentPos = currentEvent.location
+        let newX = max(0, currentPos.x + dx)
+        let newY = max(0, currentPos.y + dy)
+        let newPos = CGPoint(x: newX, y: newY)
+        CGWarpMouseCursorPosition(newPos)
+        let moveEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newPos, mouseButton: .left)
+        moveEvent?.post(tap: .cghidEventTap)
+        return true
+    }
+
+    /// Melakukan klik kiri mouse
+    @discardableResult
+    func clickMouse() -> Bool {
+        guard let currentEvent = CGEvent(source: nil) else { return false }
+        let pos = currentEvent.location
+        guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: pos, mouseButton: .left),
+              let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: pos, mouseButton: .left) else {
+            return false
+        }
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        return true
+    }
+
+    /// Melakukan klik kanan mouse
+    @discardableResult
+    func rightClickMouse() -> Bool {
+        guard let currentEvent = CGEvent(source: nil) else { return false }
+        let pos = currentEvent.location
+        guard let down = CGEvent(mouseEventSource: nil, mouseType: .rightMouseDown, mouseCursorPosition: pos, mouseButton: .right),
+              let up = CGEvent(mouseEventSource: nil, mouseType: .rightMouseUp, mouseCursorPosition: pos, mouseButton: .right) else {
+            return false
+        }
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        return true
+    }
+
     /// Mendeteksi alamat IP IPv4 lokal untuk koneksi Wi-Fi (biasanya interface en0)
     static func localIPv4Address() -> String? {
         var ifaddr: UnsafeMutablePointer<ifaddrs>?

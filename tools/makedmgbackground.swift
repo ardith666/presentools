@@ -59,7 +59,7 @@ titleStr.draw(in: titleRect, withAttributes: titleAttrs)
 let subFont = NSFont.systemFont(ofSize: 22, weight: .medium)
 let subAttrs: [NSAttributedString.Key: Any] = [
     .font: subFont,
-    .foregroundColor: NSColor(calibratedWhite: 0.7, alpha: 1.0)
+    .foregroundColor: NSColor(calibratedWhite: 0.85, alpha: 1.0)
 ]
 let subStr = "Drag to Applications" as NSString
 let subSize = subStr.size(withAttributes: subAttrs)
@@ -70,6 +70,21 @@ let subRect = CGRect(
     height: subSize.height
 )
 subStr.draw(in: subRect, withAttributes: subAttrs)
+
+let hintFont = NSFont.systemFont(ofSize: 15, weight: .regular)
+let hintAttrs: [NSAttributedString.Key: Any] = [
+    .font: hintFont,
+    .foregroundColor: NSColor(calibratedWhite: 0.5, alpha: 1.0)
+]
+let hintStr = "(Quit Presentools first if it is currently running)" as NSString
+let hintSize = hintStr.size(withAttributes: hintAttrs)
+let hintRect = CGRect(
+    x: (CGFloat(width) - hintSize.width) / 2,
+    y: 48,
+    width: hintSize.width,
+    height: hintSize.height
+)
+hintStr.draw(in: hintRect, withAttributes: hintAttrs)
 
 // 5. Stylized Directional Arrow (Animasi/Grafis Drag)
 // Dari X: 370 ke X: 710, Y tengah: 370

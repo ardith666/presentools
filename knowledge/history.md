@@ -240,6 +240,18 @@
     - `--selftest`: PASS (exit 0) — webRemote UI assets ok, slide keycodes ok, remote URL format (http://192.168.3.6:8765) ok.
   - Bukti live: port 8765 melayani interface touch-friendly dengan haptic feedback dan sync efek dua arah. Menu "Web Remote…" muncul di menu bar menampilkan QR Code dan tombol copy link.
 
+- [2026-11-11 04:35] **Fix ZoomLens Permission Loop, Touchpad & Air Mouse, dan DMG Drag/1-Click**
+  - Root cause permission ZoomLens: `permissionGranted` awalnya disimpan sebagai static property di `ZoomLens.init()`. Diganti menjadi computed property `var permissionGranted: Bool { CGPreflightScreenCaptureAccess() }`, sehingga status TCC ter-refresh otomatis secara realtime.
+  - Air Mouse & Touchpad:
+    - `POST /api/mouse` ditambahkan ke `NetworkServer.swift`.
+    - `SlideController.swift` ditambahkan `moveMouse(dx:dy:)`, `clickMouse()`, `rightClickMouse()`.
+    - `WebRemoteUI.swift` ditambahkan 2 Tab: Slide/Effects dan Trackpad & Air Mouse (Gyroscope `deviceorientation` dengan model *Hold to Move* + Touchpad swipe & tap to click).
+  - DMG Drag & 1-Click Update:
+    - Root cause drag macet: proses lama `Presentools` sedang berjalan di `/Applications/Presentools.app` saat user mencoba drag file baru.
+    - Ditambahkan skrip `Install or Update.command` di dalam DMG yang otomatis menutup app lama dan menyalin versi baru dengan 1 klik.
+    - Layout DMG dan background gambar diperbarui dengan petunjuk penutupan app lama.
+
+
 
 
 

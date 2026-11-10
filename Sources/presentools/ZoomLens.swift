@@ -31,7 +31,9 @@ final class ZoomLens {
     private(set) var captureCount = 0
     private(set) var lastError: String?
     private(set) var lastImagePixels = CGSize.zero
-    private(set) var permissionGranted = CGPreflightScreenCaptureAccess()
+    var permissionGranted: Bool {
+        CGPreflightScreenCaptureAccess()
+    }
 
     init() {
         let side = Settings.shared.lensSide
@@ -59,7 +61,9 @@ final class ZoomLens {
     }
 
     func requestPermission() {
-        if !permissionGranted { permissionGranted = CGRequestScreenCaptureAccess() }
+        if !permissionGranted {
+            _ = CGRequestScreenCaptureAccess()
+        }
     }
 
     /// Called on every cursor poll; captures only when the throttle allows, and
